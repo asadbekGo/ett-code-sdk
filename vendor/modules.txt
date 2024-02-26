@@ -1,0 +1,11 @@
+# github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
+## explicit
+# github.com/spf13/cast v1.6.0
+## explicit; go 1.19
+github.com/spf13/cast
+# github.com/technoweenie/multipartstreamer v1.0.1
+## explicit
+github.com/technoweenie/multipartstreamer
+# gopkg.in/telegram-bot-api.v4 v4.6.4
+## explicit
+gopkg.in/telegram-bot-api.v4

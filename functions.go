@@ -200,21 +200,14 @@ func (o *ObjectFunction) GetListAggregate(arg *Argument) (GetListClientApiRespon
 
 	if _, ok := arg.Request.Data["page"].(int); ok {
 		page = arg.Request.Data["page"].(int)
+		url = fmt.Sprintf("%s&offset=%d", url, (page-1)*limit)
 	}
 
 	if _, ok := arg.Request.Data["limit"]; ok {
 		limit = arg.Request.Data["limit"].(int)
+		url = fmt.Sprintf("%s&limit=%d", url, limit)
 	}
 
-	if page <= 0 {
-		page = 1
-	}
-
-	if limit <= 0 {
-		limit = 10
-	}
-
-	url = fmt.Sprintf("%s&offset=%d&limit=%d", url, (page-1)*limit, limit)
 	getListAggregateResponseInByte, err := DoRequest(url, "POST", arg.Request, o.Cfg.AppId)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(getListAggregateResponseInByte), "message": "Can't sent request", "error": err.Error()}
