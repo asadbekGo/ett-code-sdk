@@ -1,6 +1,26 @@
 package ettcodesdk
 
+import (
+	"net/http"
+	"net/url"
+)
+
 type (
+	NewRequestBody struct {
+		Data        map[string]interface{} `json:"data"`
+		RequestData struct {
+			Method  string      `json:"method"`
+			Path    string      `json:"path"`
+			Headers http.Header `json:"headers"`
+			Params  url.Values  `json:"params"`
+			Body    []byte      `json:"body"`
+		} `json:"request_data"`
+		Auth struct {
+			Type string                 `json:"type"`
+			Data map[string]interface{} `json:"data"`
+		} `json:"auth"`
+	}
+
 	Request struct {
 		Data map[string]interface{} `json:"data"`
 	}
