@@ -61,8 +61,7 @@ type (
 
 	// GetListClientApiResponse This is get list api response >>>>> GET_LIST, GET_LIST_SLIM
 	GetListClientApiResponse struct {
-		Count int                  `json:"count"`
-		Data  GetListClientApiData `json:"data"`
+		Data GetListClientApiData `json:"data"`
 	}
 
 	GetListClientApiData struct {
@@ -70,6 +69,7 @@ type (
 	}
 
 	GetListClientApiResp struct {
+		Count    int                      `json:"count"`
 		Response []map[string]interface{} `json:"response"`
 	}
 
