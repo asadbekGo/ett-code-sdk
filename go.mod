@@ -1,4 +1,4 @@
-module gitlab.udevs.io/ett/functions/ett-code-sdk
+module github.com/asadbekGo/ett-code-sdk
 
 go 1.20
 

@@ -15,14 +15,14 @@ Already a pro? Just edit this README.md and make it your own. Want to make it ea
 
 ```
 cd existing_repo
-git remote add origin https://gitlab.udevs.io/ett/functions/ett-code-sdk.git
+git remote add origin https://github.com/asadbekGo/ett-code-sdk.git
 git branch -M master
 git push -uf origin master
 ```
 
 ## Integrate with your tools
 
-- [ ] [Set up project integrations](https://gitlab.udevs.io/ett/functions/ett-code-sdk/-/settings/integrations)
+- [ ] [Set up project integrations](https://github.com/asadbekGo/ett-code-sdk/-/settings/integrations)
 
 ## Collaborate with your team
 
