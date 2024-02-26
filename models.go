@@ -25,18 +25,13 @@ type (
 		Data map[string]interface{} `json:"data"`
 	}
 
-	RequestUpdate struct {
-		Data map[string]interface{} `json:"data"`
-	}
-
 	Argument struct {
-		TableSlug         string        `json:"table_slug"`
-		Request           Request       `json:"request"`
-		DisableFaas       bool          `json:"disable_faas"`
-		BlockCached       bool          `json:"block_cached"`
-		BlockBuilder      bool          `json:"block_builder"`
-		BlockedLoginTable bool          `json:"blocked_login_table"`
-		RequestUpdate     RequestUpdate `json:"update_request"`
+		TableSlug         string  `json:"table_slug"`
+		Request           Request `json:"request"`
+		DisableFaas       bool    `json:"disable_faas"`
+		BlockCached       bool    `json:"block_cached"`
+		BlockBuilder      bool    `json:"block_builder"`
+		BlockedLoginTable bool    `json:"blocked_login_table"`
 	}
 
 	Data struct {

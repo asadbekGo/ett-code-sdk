@@ -56,7 +56,7 @@ func (o *ObjectFunction) UpdateObject(arg *Argument) (ClientApiUpdateResponse, R
 		url          = fmt.Sprintf("%s/v1/object/%s?from-ofs=%t&block_builder=%t", o.Cfg.BaseURL, arg.TableSlug, arg.DisableFaas, arg.BlockBuilder)
 	)
 
-	updateObjectResponseInByte, err := DoRequest(url, "PUT", arg.RequestUpdate, o.Cfg.AppId)
+	updateObjectResponseInByte, err := DoRequest(url, "PUT", arg.Request, o.Cfg.AppId)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(updateObjectResponseInByte), "message": "Error while updating object", "error": err.Error()}
 		response.Status = "error"
