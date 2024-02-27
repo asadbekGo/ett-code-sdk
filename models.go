@@ -69,9 +69,10 @@ type (
 	}
 
 	Response struct {
-		Status string                 `json:"status"`
-		Error  string                 `json:"error"`
-		Data   map[string]interface{} `json:"data"`
+		Status     string                 `json:"status"`
+		Error      string                 `json:"error"`
+		Data       map[string]interface{} `json:"data"`
+		Attributes map[string]interface{} `json:"attributes"`
 	}
 
 	// GetListClientApiResponse This is get list api response >>>>> GET_LIST, GET_LIST_SLIM
