@@ -113,4 +113,10 @@ type (
 	ResponseStatus struct {
 		Status string `json:"status"`
 	}
+
+	WaitGroupError struct {
+		Code         int
+		Message      string
+		ErrorMessage string
+	}
 )

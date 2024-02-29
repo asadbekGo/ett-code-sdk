@@ -8,11 +8,23 @@ import (
 	"time"
 )
 
+// 400: "Bad request."
+// 401: "The request requires an user authentication."
+// 402: "Not enough money on the contract"
+// 403: "The access is not allowed."
+// 404: "Wrong pagination parameters."
+// 405: "Method not allowed."
+// 409: "Outdated dataHash, provided product variant(s) are not available anymore"
+// 410: "Selected products not available anymore"
+// 413: "Too many products selected, change agent limitation"
+// 422: "Failed creating order"
+// 500: "Internal server error"
 var ErrorCodeWithMessage = map[int]string{
 	400: "Bad request.",
 	401: "The request requires an user authentication.",
 	402: "Not enough money on the contract",
 	403: "The access is not allowed.",
+	404: "Wrong pagination parameters.",
 	405: "Method not allowed.",
 	409: "Outdated dataHash, provided product variant(s) are not available anymore",
 	410: "Selected products not available anymore",
