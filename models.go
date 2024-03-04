@@ -119,4 +119,10 @@ type (
 		Message      string
 		ErrorMessage string
 	}
+
+	ResponseError struct {
+		Code               int
+		ClientErrorMessage string
+		ServerErrorMessage string
+	}
 )
