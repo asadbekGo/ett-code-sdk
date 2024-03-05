@@ -50,12 +50,11 @@ var Mode = []string{"🔵INFO", "🟡WARNING", "🔴ERROR"}
 
 func NewLoggerFunction(functionName string) *FaasLogger {
 	return &FaasLogger{
-		InfoLog:    NewLoggerFaas(fmt.Sprintf("%s >>> 🔵INFO >>> ", functionName), log.Ldate|log.Ltime|log.Lshortfile),
-		WarningLog: NewLoggerFaas(fmt.Sprintf("%s >>> 🟡WARNING >>> ", functionName), log.Ldate|log.Ltime|log.Lshortfile),
-		ErrorLog:   NewLoggerFaas(fmt.Sprintf("%s >>> 🔴ERROR >>> ", functionName), log.Ldate|log.Ltime|log.Lshortfile),
+		InfoLog:    NewLoggerFaas(fmt.Sprintf("%s --- 🔵INFO --- ", functionName), log.Ldate|log.Ltime|log.Lshortfile),
+		WarningLog: NewLoggerFaas(fmt.Sprintf("%s --- 🟡WARNING --- ", functionName), log.Ldate|log.Ltime|log.Lshortfile),
+		ErrorLog:   NewLoggerFaas(fmt.Sprintf("%s --- 🔴ERROR --- ", functionName), log.Ldate|log.Ltime|log.Lshortfile),
 	}
 }
-
 func NewLoggerFaas(prefix string, flag int) *Logger {
 	l := &Logger{prefix: prefix, flag: flag}
 	return l

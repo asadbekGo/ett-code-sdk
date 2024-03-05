@@ -121,8 +121,9 @@ type (
 	}
 
 	ResponseError struct {
-		Code               int
+		StatusCode         int
+		Description        interface{}
+		ErrorMessage       string
 		ClientErrorMessage string
-		ServerErrorMessage string
 	}
 )
