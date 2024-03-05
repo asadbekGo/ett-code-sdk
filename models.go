@@ -73,6 +73,7 @@ type (
 		Error      string                 `json:"error"`
 		Data       map[string]interface{} `json:"data"`
 		Attributes map[string]interface{} `json:"attributes"`
+		Server     map[string]interface{} `json:"server"`
 	}
 
 	// GetListClientApiResponse This is get list api response >>>>> GET_LIST, GET_LIST_SLIM
