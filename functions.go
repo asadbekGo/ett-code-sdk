@@ -158,21 +158,15 @@ func (o *ObjectFunction) GetListSlim(arg *Argument) (GetListClientApiResponse, R
 
 	if _, ok := arg.Request.Data["page"].(int); ok {
 		page = arg.Request.Data["page"].(int)
+		url = fmt.Sprintf("%s&offset=%d", url, (page-1)*limit)
 	}
 
 	if _, ok := arg.Request.Data["limit"]; ok {
 		limit = arg.Request.Data["limit"].(int)
+		url = fmt.Sprintf("%s&limit=%d", url, limit)
 	}
 
-	if page <= 0 {
-		page = 1
-	}
-
-	if limit <= 0 {
-		limit = 10
-	}
-
-	url = fmt.Sprintf("%s&data=%s&offset=%d&limit=%d", url, httpUrl.QueryEscape(string(reqObject)), (page-1)*limit, limit)
+	url = fmt.Sprintf("%s&data=%s", url, httpUrl.QueryEscape(string(reqObject)))
 	getListResponseInByte, err := DoRequest(url, "GET", nil, o.Cfg.AppId)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(getListResponseInByte), "message": "Can't sent request", "error": err.Error()}
