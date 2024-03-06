@@ -40,6 +40,9 @@ func DoRequest(url string, method string, body interface{}, appId string) ([]byt
 
 	respByte, err := io.ReadAll(resp.Body)
 	if cast.ToInt(resp.Status) > 300 {
+		if err != nil {
+			return nil, errors.New(string(respByte) + err.Error())
+		}
 		return nil, errors.New(string(respByte))
 	}
 
