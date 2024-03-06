@@ -32,7 +32,12 @@ func (o *ObjectFunction) CreateObject(arg *Argument) (Datas, Response, error) {
 		url           = fmt.Sprintf("%s/v1/object/%s?from-ofs=%t&block_builder=%t&blocked_login_table=%t", o.Cfg.BaseURL, arg.TableSlug, arg.DisableFaas, arg.BlockBuilder, arg.BlockedLoginTable)
 	)
 
-	createObjectResponseInByte, err := DoRequest(url, "POST", arg.Request, o.Cfg.AppId)
+	var appId = o.Cfg.AppId
+	if arg.AppId != "" {
+		appId = arg.AppId
+	}
+
+	createObjectResponseInByte, err := DoRequest(url, "POST", arg.Request, appId)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(createObjectResponseInByte), "message": "Can't send request", "error": err.Error()}
 		response.Status = "error"
@@ -56,7 +61,12 @@ func (o *ObjectFunction) UpdateObject(arg *Argument) (ClientApiUpdateResponse, R
 		url          = fmt.Sprintf("%s/v1/object/%s?from-ofs=%t&block_builder=%t", o.Cfg.BaseURL, arg.TableSlug, arg.DisableFaas, arg.BlockBuilder)
 	)
 
-	updateObjectResponseInByte, err := DoRequest(url, "PUT", arg.Request, o.Cfg.AppId)
+	var appId = o.Cfg.AppId
+	if arg.AppId != "" {
+		appId = arg.AppId
+	}
+
+	updateObjectResponseInByte, err := DoRequest(url, "PUT", arg.Request, appId)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(updateObjectResponseInByte), "message": "Error while updating object", "error": err.Error()}
 		response.Status = "error"
@@ -80,7 +90,12 @@ func (o *ObjectFunction) MultipleUpdate(arg *Argument) (ClientApiMultipleUpdateR
 		url                  = fmt.Sprintf("%s/v1/object/multiple-update/%s?from-ofs=%t&block_builder=%t", o.Cfg.BaseURL, arg.TableSlug, arg.DisableFaas, arg.BlockBuilder)
 	)
 
-	multipleUpdateObjectsResponseInByte, err := DoRequest(url, "PUT", arg.Request, o.Cfg.AppId)
+	var appId = o.Cfg.AppId
+	if arg.AppId != "" {
+		appId = arg.AppId
+	}
+
+	multipleUpdateObjectsResponseInByte, err := DoRequest(url, "PUT", arg.Request, appId)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(multipleUpdateObjectsResponseInByte), "message": "Error while multiple updating objects", "error": err.Error()}
 		response.Status = "error"
@@ -124,7 +139,12 @@ func (o *ObjectFunction) GetList(arg *Argument) (GetListClientApiResponse, Respo
 	arg.Request.Data["offset"] = (page - 1) * limit
 	arg.Request.Data["limit"] = limit
 
-	getListResponseInByte, err := DoRequest(url, "POST", arg.Request, o.Cfg.AppId)
+	var appId = o.Cfg.AppId
+	if arg.AppId != "" {
+		appId = arg.AppId
+	}
+
+	getListResponseInByte, err := DoRequest(url, "POST", arg.Request, appId)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(getListResponseInByte), "message": "Can't sent request", "error": err.Error()}
 		response.Status = "error"
@@ -167,7 +187,12 @@ func (o *ObjectFunction) GetListSlim(arg *Argument) (GetListClientApiResponse, R
 	}
 
 	url = fmt.Sprintf("%s&data=%s", url, httpUrl.QueryEscape(string(reqObject)))
-	getListResponseInByte, err := DoRequest(url, "GET", nil, o.Cfg.AppId)
+	var appId = o.Cfg.AppId
+	if arg.AppId != "" {
+		appId = arg.AppId
+	}
+
+	getListResponseInByte, err := DoRequest(url, "GET", nil, appId)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(getListResponseInByte), "message": "Can't sent request", "error": err.Error()}
 		response.Status = "error"
@@ -202,7 +227,12 @@ func (o *ObjectFunction) GetListAggregate(arg *Argument) (GetListClientApiRespon
 		url = fmt.Sprintf("%s&limit=%d", url, limit)
 	}
 
-	getListAggregateResponseInByte, err := DoRequest(url, "POST", arg.Request, o.Cfg.AppId)
+	var appId = o.Cfg.AppId
+	if arg.AppId != "" {
+		appId = arg.AppId
+	}
+
+	getListAggregateResponseInByte, err := DoRequest(url, "POST", arg.Request, appId)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(getListAggregateResponseInByte), "message": "Can't sent request", "error": err.Error()}
 		response.Status = "error"
@@ -226,7 +256,12 @@ func (o *ObjectFunction) GetSingle(arg *Argument) (ClientApiResponse, Response, 
 		url       = fmt.Sprintf("%s/v1/object/%s/%v?from-ofs=%t", o.Cfg.BaseURL, arg.TableSlug, arg.Request.Data["guid"], arg.DisableFaas)
 	)
 
-	resByte, err := DoRequest(url, "GET", nil, o.Cfg.AppId)
+	var appId = o.Cfg.AppId
+	if arg.AppId != "" {
+		appId = arg.AppId
+	}
+
+	resByte, err := DoRequest(url, "GET", nil, appId)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(resByte), "message": "Can't sent request", "error": err.Error()}
 		response.Status = "error"
@@ -250,7 +285,12 @@ func (o *ObjectFunction) GetSingleSlim(arg *Argument) (ClientApiResponse, Respon
 		url       = fmt.Sprintf("%s/v1/object-slim/%s/%v?from-ofs=%t", o.Cfg.BaseURL, arg.TableSlug, arg.Request.Data["guid"], arg.DisableFaas)
 	)
 
-	resByte, err := DoRequest(url, "GET", nil, o.Cfg.AppId)
+	var appId = o.Cfg.AppId
+	if arg.AppId != "" {
+		appId = arg.AppId
+	}
+
+	resByte, err := DoRequest(url, "GET", nil, appId)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(resByte), "message": "Can't sent request", "error": err.Error()}
 		response.Status = "error"
@@ -275,7 +315,12 @@ func (o *ObjectFunction) Delete(arg *Argument) (Response, error) {
 		url = fmt.Sprintf("%s/v1/object/%s/%v?from-ofs=%t", o.Cfg.BaseURL, arg.TableSlug, arg.Request.Data["guid"], arg.DisableFaas)
 	)
 
-	_, err := DoRequest(url, "DELETE", nil, o.Cfg.AppId)
+	var appId = o.Cfg.AppId
+	if arg.AppId != "" {
+		appId = arg.AppId
+	}
+
+	_, err := DoRequest(url, "DELETE", nil, appId)
 	if err != nil {
 		response.Data = map[string]interface{}{"message": "Error while deleting object", "error": err.Error()}
 		response.Status = "error"
@@ -291,7 +336,12 @@ func (o *ObjectFunction) MultipleDelete(arg *Argument) (Response, error) {
 		url      = fmt.Sprintf("%s/v1/object/%s/?from-ofs=%t", o.Cfg.BaseURL, arg.TableSlug, arg.DisableFaas)
 	)
 
-	_, err := DoRequest(url, "DELETE", arg.Request.Data, o.Cfg.AppId)
+	var appId = o.Cfg.AppId
+	if arg.AppId != "" {
+		appId = arg.AppId
+	}
+
+	_, err := DoRequest(url, "DELETE", arg.Request.Data, appId)
 	if err != nil {
 		response.Data = map[string]interface{}{"message": "Error while deleting objects", "error": err.Error()}
 		response.Status = "error"

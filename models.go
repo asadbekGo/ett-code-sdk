@@ -26,6 +26,7 @@ type (
 	}
 
 	Argument struct {
+		AppId             string  `json:"app_id"`
 		TableSlug         string  `json:"table_slug"`
 		Request           Request `json:"request"`
 		DisableFaas       bool    `json:"disable_faas"`
