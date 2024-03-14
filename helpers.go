@@ -164,3 +164,20 @@ func TimeAfterAndEqual(t1, t2 time.Time) bool {
 
 	return false
 }
+
+func CopyMapStringInterface(dest, src map[string]interface{}) {
+	for key, value := range src {
+		dest[key] = value
+	}
+}
+
+// sortDescending sorts the slice of indices in descending order
+func SortDescendingSliceInt(slice []int) {
+	for i := 0; i < len(slice)-1; i++ {
+		for j := i + 1; j < len(slice); j++ {
+			if slice[i] < slice[j] {
+				slice[i], slice[j] = slice[j], slice[i]
+			}
+		}
+	}
+}
