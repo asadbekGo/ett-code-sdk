@@ -176,14 +176,14 @@ func (o *ObjectFunction) GetListSlim(arg *Argument) (GetListClientApiResponse, R
 		return GetListClientApiResponse{}, response, err
 	}
 
-	if _, ok := arg.Request.Data["page"].(int); ok {
-		page = arg.Request.Data["page"].(int)
-		url = fmt.Sprintf("%s&offset=%d", url, (page-1)*limit)
-	}
-
 	if _, ok := arg.Request.Data["limit"]; ok {
 		limit = arg.Request.Data["limit"].(int)
 		url = fmt.Sprintf("%s&limit=%d", url, limit)
+	}
+
+	if _, ok := arg.Request.Data["page"].(int); ok {
+		page = arg.Request.Data["page"].(int)
+		url = fmt.Sprintf("%s&offset=%d", url, (page-1)*limit)
 	}
 
 	url = fmt.Sprintf("%s&data=%s", url, httpUrl.QueryEscape(string(reqObject)))
@@ -217,14 +217,14 @@ func (o *ObjectFunction) GetListAggregate(arg *Argument) (GetListClientApiRespon
 		page, limit      int
 	)
 
-	if _, ok := arg.Request.Data["page"].(int); ok {
-		page = arg.Request.Data["page"].(int)
-		url = fmt.Sprintf("%s&offset=%d", url, (page-1)*limit)
-	}
-
 	if _, ok := arg.Request.Data["limit"]; ok {
 		limit = arg.Request.Data["limit"].(int)
 		url = fmt.Sprintf("%s&limit=%d", url, limit)
+	}
+
+	if _, ok := arg.Request.Data["page"].(int); ok {
+		page = arg.Request.Data["page"].(int)
+		url = fmt.Sprintf("%s&offset=%d", url, (page-1)*limit)
 	}
 
 	var appId = o.Cfg.AppId
