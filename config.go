@@ -19,3 +19,11 @@ func (cfg *Config) SetBaseUrl(url string) {
 func (cfg *Config) SetBotToken(token string) {
 	cfg.BotToken = token
 }
+
+func (cfg *Config) SetAccountIds(accountIds []string) {
+	cfg.AccountIds = accountIds
+}
+
+func (cfg *Config) SetFunctionName(functionName string) {
+	cfg.FunctionName = functionName
+}
