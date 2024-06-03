@@ -31,8 +31,10 @@ func DoRequest(url string, method string, body interface{}, appId string) ([]byt
 		return nil, err
 	}
 
-	request.Header.Add("authorization", "API-KEY")
-	request.Header.Add("X-API-KEY", appId)
+	if appId != "" {
+		request.Header.Add("authorization", "API-KEY")
+		request.Header.Add("X-API-KEY", appId)
+	}
 
 	resp, err := client.Do(request)
 	if err != nil {
