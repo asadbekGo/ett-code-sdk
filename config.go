@@ -1,11 +1,13 @@
 package ettcodesdk
 
 type Config struct {
-	AppId        string
-	BaseURL      string
-	BotToken     string
-	AccountIds   []string
-	FunctionName string
+	AppId         string
+	BaseURL       string
+	BotToken      string
+	AccountIds    []string
+	FunctionName  string
+	ProjectId     string
+	EnvironmentId string
 }
 
 func (cfg *Config) SetAppId(appId string) {
@@ -26,4 +28,12 @@ func (cfg *Config) SetAccountIds(accountIds []string) {
 
 func (cfg *Config) SetFunctionName(functionName string) {
 	cfg.FunctionName = functionName
+}
+
+func (cfg *Config) SetProjectId(projectId string) {
+	cfg.ProjectId = projectId
+}
+
+func (cfg *Config) SetEnvorinmentId(environmentId string) {
+	cfg.EnvironmentId = environmentId
 }
