@@ -47,7 +47,7 @@ func DoRequest(url string, method string, body interface{}, appId string) ([]byt
 		if err != nil {
 			return nil, errors.New(string(respByte) + err.Error())
 		}
-		return nil, errors.New(string(respByte))
+		return respByte, errors.New(string(respByte))
 	}
 
 	return respByte, err
