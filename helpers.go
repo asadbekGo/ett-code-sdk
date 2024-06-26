@@ -32,6 +32,7 @@ func DoRequest(url string, method string, body interface{}, appId string) ([]byt
 	}
 
 	if appId != "" {
+		request.Header.Add("Content-Type", "application/json")
 		request.Header.Add("authorization", "API-KEY")
 		request.Header.Add("X-API-KEY", appId)
 	}
