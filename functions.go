@@ -351,7 +351,7 @@ func (o *ObjectFunction) MultipleDelete(arg *Argument) (Response, error) {
 	return response, nil
 }
 
-func (o *ObjectFunction) SendTelergram(text string) error {
+func (o *ObjectFunction) SendTelegram(text string) error {
 	client := &http.Client{}
 
 	if ContainsLike(Mode, text) {
