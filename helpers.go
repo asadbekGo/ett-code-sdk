@@ -16,7 +16,7 @@ import (
 	"github.com/spf13/cast"
 )
 
-func DoRequest(url string, method string, body interface{}, appId string) ([]byte, error) {
+func DoRequest(url string, method string, body interface{}, appId string, headers map[string]interface{}) ([]byte, error) {
 	data, err := json.Marshal(&body)
 	if err != nil {
 		return nil, err
@@ -35,6 +35,10 @@ func DoRequest(url string, method string, body interface{}, appId string) ([]byt
 		request.Header.Add("Content-Type", "application/json")
 		request.Header.Add("authorization", "API-KEY")
 		request.Header.Add("X-API-KEY", appId)
+	}
+
+	for key, value := range headers {
+		request.Header.Add(key, cast.ToString(value))
 	}
 
 	resp, err := client.Do(request)
