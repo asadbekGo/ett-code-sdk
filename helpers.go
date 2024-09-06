@@ -23,6 +23,10 @@ func DoRequest(ctx context.Context, url string, method string, body interface{},
 		return nil, err
 	}
 
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	request, err := http.NewRequestWithContext(ctx, method, url, bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
