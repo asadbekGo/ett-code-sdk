@@ -1,6 +1,7 @@
 package ettcodesdk
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 )
@@ -26,13 +27,14 @@ type (
 	}
 
 	Argument struct {
-		AppId             string  `json:"app_id"`
-		TableSlug         string  `json:"table_slug"`
-		Request           Request `json:"request"`
-		DisableFaas       bool    `json:"disable_faas"`
-		BlockCached       bool    `json:"block_cached"`
-		BlockBuilder      bool    `json:"block_builder"`
-		BlockedLoginTable bool    `json:"blocked_login_table"`
+		Ctx               context.Context `json:"context"`
+		AppId             string          `json:"app_id"`
+		TableSlug         string          `json:"table_slug"`
+		Request           Request         `json:"request"`
+		DisableFaas       bool            `json:"disable_faas"`
+		BlockCached       bool            `json:"block_cached"`
+		BlockBuilder      bool            `json:"block_builder"`
+		BlockedLoginTable bool            `json:"blocked_login_table"`
 	}
 
 	Data struct {

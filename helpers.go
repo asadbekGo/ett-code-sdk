@@ -95,7 +95,6 @@ const (
 )
 
 func GenerateRandomString(length int, cmd int) string {
-	rand.Seed(time.Now().UnixNano())
 	var letterBytes string
 
 	switch cmd {
