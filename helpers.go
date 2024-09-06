@@ -2,6 +2,7 @@ package ettcodesdk
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -16,17 +17,13 @@ import (
 	"github.com/spf13/cast"
 )
 
-func DoRequest(url string, method string, body interface{}, appId string, headers map[string]interface{}) ([]byte, error) {
+func DoRequest(ctx context.Context, url string, method string, body interface{}, appId string, headers map[string]interface{}) ([]byte, error) {
 	data, err := json.Marshal(&body)
 	if err != nil {
 		return nil, err
 	}
 
-	client := &http.Client{
-		// Timeout: time.Duration(5 * time.Second),
-	}
-
-	request, err := http.NewRequest(method, url, bytes.NewBuffer(data))
+	request, err := http.NewRequestWithContext(ctx, method, url, bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
 	}
@@ -41,6 +38,7 @@ func DoRequest(url string, method string, body interface{}, appId string, header
 		request.Header.Add(key, cast.ToString(value))
 	}
 
+	client := &http.Client{}
 	resp, err := client.Do(request)
 	if err != nil {
 		return nil, err
