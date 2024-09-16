@@ -20,6 +20,15 @@ type (
 			Type string                 `json:"type"`
 			Data map[string]interface{} `json:"data"`
 		} `json:"auth"`
+		Env struct {
+			BaseURL       string `json:"base_url"`
+			BranchName    string `json:"branch_name"`
+			EnvironmentID string `json:"environment_id"`
+			ProjectID     string `json:"project_id"`
+			ResourceEnvID string `json:"resource_env_id"`
+			ResourceID    string `json:"resource_id"`
+			SecretKey     string `json:"secret_key"`
+		}
 	}
 
 	Request struct {

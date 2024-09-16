@@ -3,6 +3,9 @@ package ettcodesdk
 import (
 	"bytes"
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	crypt_rand "crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -203,4 +206,54 @@ func HashSHA256(data string) string {
 // verifySHA256 verifies if the input data matches the hashed data
 func VerifySHA256(data, hashedData string) bool {
 	return HashSHA256(data) == hashedData
+}
+func Encrypt(secretKey, plaintext string) (string, error) {
+	aes, err := aes.NewCipher([]byte(secretKey))
+	if err != nil {
+		return "", err
+	}
+
+	gcm, err := cipher.NewGCM(aes)
+	if err != nil {
+		return "", err
+	}
+
+	// We need a 12-byte nonce for GCM (modifiable if you use cipher.NewGCMWithNonceSize())
+	// A nonce should always be randomly generated for every encryption.
+	nonce := make([]byte, gcm.NonceSize())
+	_, err = crypt_rand.Read(nonce)
+	if err != nil {
+		return "", err
+	}
+
+	// ciphertext here is actually nonce+ciphertext
+	// So that when we decrypt, just knowing the nonce size
+	// is enough to separate it from the ciphertext.
+	ciphertext := gcm.Seal(nonce, nonce, []byte(plaintext), nil)
+
+	return string(ciphertext), nil
+}
+
+func Decrypt(secretKey, ciphertext string) (string, error) {
+	aes, err := aes.NewCipher([]byte(secretKey))
+	if err != nil {
+		return "", err
+	}
+
+	gcm, err := cipher.NewGCM(aes)
+	if err != nil {
+		return "", err
+	}
+
+	// Since we know the ciphertext is actually nonce+ciphertext
+	// And len(nonce) == NonceSize(). We can separate the two.
+	nonceSize := gcm.NonceSize()
+	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
+
+	plaintext, err := gcm.Open(nil, []byte(nonce), []byte(ciphertext), nil)
+	if err != nil {
+		return "", err
+	}
+
+	return string(plaintext), nil
 }
