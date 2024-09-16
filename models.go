@@ -21,7 +21,8 @@ type (
 			Data map[string]interface{} `json:"data"`
 		} `json:"auth"`
 		Env struct {
-			BaseURL       string `json:"base_url"`
+			AdminBaseURL  string `json:"admin_base_url"`
+			AgentBaseURL  string `json:"agent_base_url"`
 			BranchName    string `json:"branch_name"`
 			EnvironmentID string `json:"environment_id"`
 			ProjectID     string `json:"project_id"`
