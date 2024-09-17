@@ -23,6 +23,7 @@ type (
 		Env struct {
 			AdminBaseURL  string `json:"admin_base_url"`
 			AgentBaseURL  string `json:"agent_base_url"`
+			CDNBaseURL    string `json:"cdn_base_url"`
 			BranchName    string `json:"branch_name"`
 			EnvironmentID string `json:"environment_id"`
 			ProjectID     string `json:"project_id"`
