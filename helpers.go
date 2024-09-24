@@ -207,6 +207,7 @@ func HashSHA256(data string) string {
 func VerifySHA256(data, hashedData string) bool {
 	return HashSHA256(data) == hashedData
 }
+
 func Encrypt(secretKey, plaintext string) (string, error) {
 	aes, err := aes.NewCipher([]byte(secretKey))
 	if err != nil {
@@ -231,10 +232,16 @@ func Encrypt(secretKey, plaintext string) (string, error) {
 	// is enough to separate it from the ciphertext.
 	ciphertext := gcm.Seal(nonce, nonce, []byte(plaintext), nil)
 
-	return string(ciphertext), nil
+	return hex.EncodeToString(ciphertext), nil
 }
 
 func Decrypt(secretKey, ciphertext string) (string, error) {
+	ciphertextBytes, err := hex.DecodeString(ciphertext)
+	if err != nil {
+		return "", err
+	}
+	ciphertext = string(ciphertextBytes)
+
 	aes, err := aes.NewCipher([]byte(secretKey))
 	if err != nil {
 		return "", err
