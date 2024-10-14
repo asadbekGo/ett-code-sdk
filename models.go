@@ -47,6 +47,7 @@ type (
 		BlockCached       bool            `json:"block_cached"`
 		BlockBuilder      bool            `json:"block_builder"`
 		BlockedLoginTable bool            `json:"blocked_login_table"`
+		IsCacheService    bool            `json:"is_cache_service"`
 	}
 
 	Data struct {
