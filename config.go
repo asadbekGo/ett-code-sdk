@@ -8,6 +8,7 @@ type Config struct {
 	FunctionName  string
 	ProjectId     string
 	EnvironmentId string
+	BranchName    string
 }
 
 func (cfg *Config) SetAppId(appId string) {
@@ -36,4 +37,8 @@ func (cfg *Config) SetProjectId(projectId string) {
 
 func (cfg *Config) SetEnvorinmentId(environmentId string) {
 	cfg.EnvironmentId = environmentId
+}
+
+func (cfg *Config) SetBranchName(branchName string) {
+	cfg.BranchName = branchName
 }

@@ -360,6 +360,10 @@ func (o *ObjectFunction) SendTelegram(text string) error {
 		text = o.Cfg.FunctionName + " >>> " + time.Now().Format(time.RFC3339) + " >>>>> " + text
 	}
 
+	if o.Cfg.BranchName != "" {
+		text = strings.ToUpper(o.Cfg.BranchName) + " >>> " + text
+	}
+
 	for _, e := range o.Cfg.AccountIds {
 		botUrl := fmt.Sprintf("https://api.telegram.org/bot"+o.Cfg.BotToken+"/sendMessage?chat_id="+e+"&text=%s", text)
 		request, err := http.NewRequest("GET", botUrl, nil)
