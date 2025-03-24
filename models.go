@@ -21,16 +21,19 @@ type (
 			Data map[string]interface{} `json:"data"`
 		} `json:"auth"`
 		Env struct {
-			AdminBaseURL  string `json:"admin_base_url"`
-			AgentBaseURL  string `json:"agent_base_url"`
-			AuthBaseURL   string `json:"auth_base_url"`
-			CDNBaseURL    string `json:"cdn_base_url"`
-			BranchName    string `json:"branch_name"`
-			EnvironmentID string `json:"environment_id"`
-			ProjectID     string `json:"project_id"`
-			ResourceEnvID string `json:"resource_env_id"`
-			ResourceID    string `json:"resource_id"`
-			SecretKey     string `json:"secret_key"`
+			AdminBaseURL     string `json:"admin_base_url"`
+			AgentBaseURL     string `json:"agent_base_url"`
+			AuthBaseURL      string `json:"auth_base_url"`
+			RealAdminBaseURL string `json:"real_admin_base_url"`
+			RealAgentBaseURL string `json:"real_agent_base_url"`
+			RealAuthBaseURL  string `json:"real_auth_base_url"`
+			CDNBaseURL       string `json:"cdn_base_url"`
+			BranchName       string `json:"branch_name"`
+			EnvironmentID    string `json:"environment_id"`
+			ProjectID        string `json:"project_id"`
+			ResourceEnvID    string `json:"resource_env_id"`
+			ResourceID       string `json:"resource_id"`
+			SecretKey        string `json:"secret_key"`
 		}
 	}
 
