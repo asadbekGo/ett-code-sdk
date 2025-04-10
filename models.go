@@ -145,5 +145,6 @@ type (
 		Description        interface{}
 		ErrorMessage       string
 		ClientErrorMessage string
+		Errors             []map[string]interface{}
 	}
 )
