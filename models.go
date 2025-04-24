@@ -130,6 +130,18 @@ type (
 		} `json:"data"`
 	}
 
+	// ClientApiAggregationResponse This is aggregation api response >>>>> AGGREGATION
+	ClientApiAggregationResponse struct {
+		Status      string `json:"status"`
+		Description string `json:"description"`
+		Data        struct {
+			TableSlug string `json:"table_slug"`
+			Data      struct {
+				Data []map[string]interface{} `json:"data"`
+			} `json:"data"`
+		} `json:"data"`
+	}
+
 	ResponseStatus struct {
 		Status string `json:"status"`
 	}
