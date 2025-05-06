@@ -159,4 +159,13 @@ type (
 		ClientErrorMessage string
 		Errors             []map[string]interface{}
 	}
+
+	DoRequestApi struct {
+		ContextTime int                    `json:"context_time"` // in seconds
+		Url         string                 `json:"url"`
+		Method      string                 `json:"method"`
+		AppId       string                 `json:"app_id"`
+		Headers     map[string]interface{} `json:"headers"`
+		RequestBody interface{}            `json:"request_body"`
+	}
 )
