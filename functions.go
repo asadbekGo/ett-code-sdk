@@ -37,7 +37,7 @@ func (o *ObjectFunction) CreateObject(arg *Argument) (Datas, Response, error) {
 		appId = arg.AppId
 	}
 
-	createObjectResponseInByte, err := DoRequest(arg.Ctx, url, "POST", arg.Request, appId, nil)
+	createObjectResponseInByte, err := DoRequest(arg.Ctx, url, http.MethodPost, arg.Request, appId, nil)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(createObjectResponseInByte), "message": "Can't send request", "error": err.Error()}
 		response.Status = "error"
@@ -66,7 +66,7 @@ func (o *ObjectFunction) UpdateObject(arg *Argument) (ClientApiUpdateResponse, R
 		appId = arg.AppId
 	}
 
-	updateObjectResponseInByte, err := DoRequest(arg.Ctx, url, "PUT", arg.Request, appId, nil)
+	updateObjectResponseInByte, err := DoRequest(arg.Ctx, url, http.MethodPut, arg.Request, appId, nil)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(updateObjectResponseInByte), "message": "Error while updating object", "error": err.Error()}
 		response.Status = "error"
@@ -95,7 +95,7 @@ func (o *ObjectFunction) MultipleUpdate(arg *Argument) (ClientApiMultipleUpdateR
 		appId = arg.AppId
 	}
 
-	multipleUpdateObjectsResponseInByte, err := DoRequest(arg.Ctx, url, "PUT", arg.Request, appId, nil)
+	multipleUpdateObjectsResponseInByte, err := DoRequest(arg.Ctx, url, http.MethodPut, arg.Request, appId, nil)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(multipleUpdateObjectsResponseInByte), "message": "Error while multiple updating objects", "error": err.Error()}
 		response.Status = "error"
@@ -105,6 +105,35 @@ func (o *ObjectFunction) MultipleUpdate(arg *Argument) (ClientApiMultipleUpdateR
 	err = json.Unmarshal(multipleUpdateObjectsResponseInByte, &multipleUpdateObject)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(multipleUpdateObjectsResponseInByte), "message": "Error while unmarshalling multiple update objects", "error": err.Error()}
+		response.Status = "error"
+		return ClientApiMultipleUpdateResponse{}, response, err
+	}
+
+	return multipleUpdateObject, response, nil
+}
+
+func (o *ObjectFunction) UpdateManyQuery(arg *Argument) (ClientApiMultipleUpdateResponse, Response, error) {
+	var (
+		response             = Response{Status: "done"}
+		multipleUpdateObject = ClientApiMultipleUpdateResponse{}
+		url                  = fmt.Sprintf("%s/v1/object/update-many-query/%s", o.Cfg.BaseURL, arg.TableSlug)
+	)
+
+	var appId = o.Cfg.AppId
+	if arg.AppId != "" {
+		appId = arg.AppId
+	}
+
+	multipleUpdateObjectsResponseInByte, err := DoRequest(arg.Ctx, url, http.MethodPut, arg.Request, appId, nil)
+	if err != nil {
+		response.Data = map[string]interface{}{"description": string(multipleUpdateObjectsResponseInByte), "message": "Error while update many query objects", "error": err.Error()}
+		response.Status = "error"
+		return ClientApiMultipleUpdateResponse{}, response, err
+	}
+
+	err = json.Unmarshal(multipleUpdateObjectsResponseInByte, &multipleUpdateObject)
+	if err != nil {
+		response.Data = map[string]interface{}{"description": string(multipleUpdateObjectsResponseInByte), "message": "Error while unmarshalling update many query objects", "error": err.Error()}
 		response.Status = "error"
 		return ClientApiMultipleUpdateResponse{}, response, err
 	}
@@ -144,7 +173,7 @@ func (o *ObjectFunction) GetList(arg *Argument) (GetListClientApiResponse, Respo
 		appId = arg.AppId
 	}
 
-	getListResponseInByte, err := DoRequest(arg.Ctx, url, "POST", arg.Request, appId, nil)
+	getListResponseInByte, err := DoRequest(arg.Ctx, url, http.MethodPost, arg.Request, appId, nil)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(getListResponseInByte), "message": "Can't sent request", "error": err.Error()}
 		response.Status = "error"
@@ -192,7 +221,7 @@ func (o *ObjectFunction) GetListSlim(arg *Argument) (GetListClientApiResponse, R
 		appId = arg.AppId
 	}
 
-	getListResponseInByte, err := DoRequest(arg.Ctx, url, "GET", nil, appId, nil)
+	getListResponseInByte, err := DoRequest(arg.Ctx, url, http.MethodGet, nil, appId, nil)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(getListResponseInByte), "message": "Can't sent request", "error": err.Error()}
 		response.Status = "error"
@@ -232,7 +261,7 @@ func (o *ObjectFunction) GetListAggregate(arg *Argument) (GetListClientApiRespon
 		appId = arg.AppId
 	}
 
-	getListAggregateResponseInByte, err := DoRequest(arg.Ctx, url, "POST", arg.Request, appId, nil)
+	getListAggregateResponseInByte, err := DoRequest(arg.Ctx, url, http.MethodPost, arg.Request, appId, nil)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(getListAggregateResponseInByte), "message": "Can't sent request", "error": err.Error()}
 		response.Status = "error"
@@ -261,7 +290,7 @@ func (o *ObjectFunction) GetSingle(arg *Argument) (ClientApiResponse, Response, 
 		appId = arg.AppId
 	}
 
-	resByte, err := DoRequest(arg.Ctx, url, "GET", nil, appId, nil)
+	resByte, err := DoRequest(arg.Ctx, url, http.MethodGet, nil, appId, nil)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(resByte), "message": "Can't sent request", "error": err.Error()}
 		response.Status = "error"
@@ -290,7 +319,7 @@ func (o *ObjectFunction) GetSingleSlim(arg *Argument) (ClientApiResponse, Respon
 		appId = arg.AppId
 	}
 
-	resByte, err := DoRequest(arg.Ctx, url, "GET", nil, appId, nil)
+	resByte, err := DoRequest(arg.Ctx, url, http.MethodGet, nil, appId, nil)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(resByte), "message": "Can't sent request", "error": err.Error()}
 		response.Status = "error"
@@ -320,7 +349,7 @@ func (o *ObjectFunction) Delete(arg *Argument) (Response, error) {
 		appId = arg.AppId
 	}
 
-	_, err := DoRequest(arg.Ctx, url, "DELETE", nil, appId, nil)
+	_, err := DoRequest(arg.Ctx, url, http.MethodDelete, nil, appId, nil)
 	if err != nil {
 		response.Data = map[string]interface{}{"message": "Error while deleting object", "error": err.Error()}
 		response.Status = "error"
@@ -341,7 +370,7 @@ func (o *ObjectFunction) MultipleDelete(arg *Argument) (Response, error) {
 		appId = arg.AppId
 	}
 
-	_, err := DoRequest(arg.Ctx, url, "DELETE", arg.Request.Data, appId, nil)
+	_, err := DoRequest(arg.Ctx, url, http.MethodDelete, arg.Request.Data, appId, nil)
 	if err != nil {
 		response.Data = map[string]interface{}{"message": "Error while deleting objects", "error": err.Error()}
 		response.Status = "error"
@@ -366,7 +395,7 @@ func (o *ObjectFunction) SendTelegram(text string) error {
 
 	for _, e := range o.Cfg.AccountIds {
 		botUrl := fmt.Sprintf("https://api.telegram.org/bot"+o.Cfg.BotToken+"/sendMessage?chat_id="+e+"&text=%s", text)
-		request, err := http.NewRequest("GET", botUrl, nil)
+		request, err := http.NewRequest(http.MethodGet, botUrl, nil)
 		if err != nil {
 			return err
 		}
