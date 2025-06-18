@@ -387,6 +387,12 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 			ExternalUserId:   tokenArr[1],
 			Email:            tokenArr[1],
 		}
+
+	default:
+		errorResponse.StatusCode = 404
+		errorResponse.ClientErrorMessage = "Authorization provider not found"
+		errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("Authorization provider not found")
+		return userAccountObject, errorResponse
 	}
 
 	// User account request ...
@@ -430,14 +436,6 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 		return userAccountObject, errorResponse
 	}
 	userAccountObject = userAccountResponse.Data.Data.Response[0]
-
-	if sdk.Contains(cast.ToStringSlice(userAccountObject["status"]), "inactive") {
-		errorResponse.StatusCode = 404
-		errorResponse.Description = response.Data["description"]
-		errorResponse.ClientErrorMessage = "Resource not found."
-		errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(errorResponse.ClientErrorMessage)
-		return
-	}
 
 	return userAccountObject, errorResponse
 }
