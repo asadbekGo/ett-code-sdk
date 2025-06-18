@@ -16,19 +16,20 @@ import (
 )
 
 type UserAccount struct {
-	Id               string `json:"id,omitempty"`
-	ExternalUserId   string `json:"external_user_id,omitempty"`
-	ExternalAgencyId string `json:"external_agency_id,omitempty"`
-	FirstName        string `json:"firstName,omitempty"`
-	LastName         string `json:"lastName,omitempty"`
-	Email            string `json:"email,omitempty"`
-	Phone            string `json:"phone,omitempty"`
-	Photo            string `json:"photo,omitempty"`
-	SelectedLanguage string `json:"selectedLanguage,omitempty"`
-	SelectedCurrency string `json:"selectedCurrency,omitempty"`
+	Id                    string `json:"id,omitempty"`
+	ExternalUserId        string `json:"external_user_id,omitempty"`
+	ExternalAgencyId      string `json:"external_agency_id,omitempty"`
+	FirstName             string `json:"firstName,omitempty"`
+	LastName              string `json:"lastName,omitempty"`
+	Email                 string `json:"email,omitempty"`
+	Phone                 string `json:"phone,omitempty"`
+	Photo                 string `json:"photo,omitempty"`
+	SelectedLanguage      string `json:"selectedLanguage,omitempty"`
+	SelectedCurrency      string `json:"selectedCurrency,omitempty"`
+	AuthorizationProvider string `json:"authorizationProvider,omitempty"`
 }
 
-func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToken, secretKey string, ettUcodeApi *sdk.ObjectFunction) (userAccountObject map[string]interface{}, errorResponse sdk.ResponseError) {
+func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secretKey string, ettUcodeApi *sdk.ObjectFunction) (userAccount UserAccount, errorResponse sdk.ResponseError) {
 
 	// Authorization service request ...
 	var authorizationServices = cast.ToSlice(widgetObject["authorization_services"])
@@ -36,7 +37,7 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 		errorResponse.StatusCode = 404
 		errorResponse.ClientErrorMessage = "Authorization service not found"
 		errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("Authorization service not found")
-		return userAccountObject, errorResponse
+		return userAccount, errorResponse
 	}
 
 	var (
@@ -52,7 +53,7 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 		errorResponse.StatusCode = 404
 		errorResponse.ClientErrorMessage = "Authorization provider not found"
 		errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("Authorization provider not found")
-		return userAccountObject, errorResponse
+		return userAccount, errorResponse
 	}
 
 	if accessToken == "" {
@@ -63,10 +64,9 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 		if authRedirectUrl != "" {
 			errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
 		}
-		return userAccountObject, errorResponse
+		return userAccount, errorResponse
 	}
 
-	var userAccount UserAccount
 	switch authorizationProvider[0] {
 	case "auth0":
 		// Auth0 request ...
@@ -80,14 +80,14 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 			ettUcodeApi,
 		)
 		if errorResponse.ErrorMessage != "" {
-			return userAccountObject, errorResponse
+			return userAccount, errorResponse
 		}
 
 		if claims.RegisteredClaims.Sub == "" {
 			errorResponse.StatusCode = 401
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("Empty sub")
-			return userAccountObject, errorResponse
+			return userAccount, errorResponse
 		}
 
 		// Auth0 get token ...
@@ -102,7 +102,7 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 				errorResponse.StatusCode = 500
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-				return userAccountObject, errorResponse
+				return userAccount, errorResponse
 			}
 
 			isAuthorizationUpdateToken = false
@@ -135,7 +135,7 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 				ettUcodeApi,
 			)
 			if errorResponse.ErrorMessage != "" {
-				return userAccountObject, errorResponse
+				return userAccount, errorResponse
 			}
 
 			tokenExpiretat := time.Now().Add(time.Second * time.Duration(tokenResponse.ExpiresIn)).Format(time.RFC3339)
@@ -147,7 +147,7 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 				errorResponse.Description = response.Data["description"]
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-				return userAccountObject, errorResponse
+				return userAccount, errorResponse
 			}
 			accessToken = tokenResponse.AccessToken
 		}
@@ -164,18 +164,18 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 			ettUcodeApi,
 		)
 		if errorResponse.ErrorMessage != "" {
-			return userAccountObject, errorResponse
+			return userAccount, errorResponse
 		}
 
 		if len(users) <= 0 {
 			errorResponse.StatusCode = 401
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("User not found")
-			return userAccountObject, errorResponse
+			return userAccount, errorResponse
 		}
 
 		var fullName = strings.Split(users[0].Name, " ")
-		userAccount = UserAccount{ExternalUserId: claims.RegisteredClaims.Sub, FirstName: users[0].Name, Email: users[0].Email, Phone: users[0].PhoneNumber}
+		userAccount = UserAccount{ExternalUserId: claims.RegisteredClaims.Sub, FirstName: users[0].Name, Email: users[0].Email, Phone: users[0].PhoneNumber, AuthorizationProvider: authorizationProvider[0]}
 		if len(fullName) == 2 {
 			userAccount.FirstName = fullName[0]
 			userAccount.LastName = fullName[1]
@@ -216,7 +216,7 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 			if authRedirectUrl != "" {
 				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
 			}
-			return userAccountObject, errorResponse
+			return userAccount, errorResponse
 		}
 		if userID == "" {
 			errorResponse.StatusCode = 401
@@ -226,7 +226,7 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 			if authRedirectUrl != "" {
 				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
 			}
-			return userAccountObject, errorResponse
+			return userAccount, errorResponse
 		}
 
 		beelineUserAccount, err := beeline.GetUser(
@@ -240,7 +240,7 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 			errorResponse.StatusCode = 500
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-			return userAccountObject, errorResponse
+			return userAccount, errorResponse
 		}
 
 		if beelineUserAccount.PhoneNumber == "" {
@@ -251,7 +251,7 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 			if authRedirectUrl != "" {
 				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
 			}
-			return userAccountObject, errorResponse
+			return userAccount, errorResponse
 		}
 
 		if !strings.HasPrefix(beelineUserAccount.PhoneNumber, "+") {
@@ -259,10 +259,11 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 		}
 
 		userAccount = UserAccount{
-			ExternalUserId: userID,
-			Phone:          beelineUserAccount.PhoneNumber,
-			FirstName:      beelineUserAccount.FirstName,
-			LastName:       beelineUserAccount.LastName,
+			ExternalUserId:        userID,
+			Phone:                 beelineUserAccount.PhoneNumber,
+			FirstName:             beelineUserAccount.FirstName,
+			LastName:              beelineUserAccount.LastName,
+			AuthorizationProvider: authorizationProvider[0],
 		}
 
 	case "ets":
@@ -276,7 +277,7 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 			if authRedirectUrl != "" {
 				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
 			}
-			return userAccountObject, errorResponse
+			return userAccount, errorResponse
 		}
 
 		var (
@@ -302,9 +303,9 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 			if authRedirectUrl != "" {
 				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
 			}
-			return userAccountObject, errorResponse
+			return userAccount, errorResponse
 		}
-		userAccount = UserAccount{ExternalUserId: userID, Email: userID}
+		userAccount = UserAccount{ExternalUserId: userID, Email: userID, AuthorizationProvider: authorizationProvider[0]}
 
 	case "click":
 		// Click request ...
@@ -326,7 +327,7 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 			errorResponse.StatusCode = 500
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-			return userAccountObject, errorResponse
+			return userAccount, errorResponse
 		}
 
 		if clickUserAccount.Error.Code != 0 || clickUserAccount.Error.Message != "" {
@@ -337,7 +338,7 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 			if authRedirectUrl != "" {
 				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
 			}
-			return userAccountObject, errorResponse
+			return userAccount, errorResponse
 		}
 
 		if clickUserAccount.Result.ClientId == 0 {
@@ -348,14 +349,15 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 			if authRedirectUrl != "" {
 				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
 			}
-			return userAccountObject, errorResponse
+			return userAccount, errorResponse
 		}
 
 		userAccount = UserAccount{
-			ExternalUserId: strconv.Itoa(clickUserAccount.Result.ClientId),
-			Phone:          clickUserAccount.Result.PhoneNumber,
-			FirstName:      clickUserAccount.Result.Name,
-			LastName:       clickUserAccount.Result.Surname,
+			ExternalUserId:        strconv.Itoa(clickUserAccount.Result.ClientId),
+			Phone:                 clickUserAccount.Result.PhoneNumber,
+			FirstName:             clickUserAccount.Result.Name,
+			LastName:              clickUserAccount.Result.Surname,
+			AuthorizationProvider: authorizationProvider[0],
 		}
 
 	case "schmetterling":
@@ -368,7 +370,7 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 			if authRedirectUrl != "" {
 				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
 			}
-			return userAccountObject, errorResponse
+			return userAccount, errorResponse
 		}
 
 		if tokenArr[0] == "" {
@@ -379,21 +381,27 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 			if authRedirectUrl != "" {
 				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
 			}
-			return userAccountObject, errorResponse
+			return userAccount, errorResponse
 		}
 
 		userAccount = UserAccount{
-			ExternalAgencyId: tokenArr[0],
-			ExternalUserId:   tokenArr[1],
-			Email:            tokenArr[1],
+			ExternalAgencyId:      tokenArr[0],
+			ExternalUserId:        tokenArr[1],
+			Email:                 tokenArr[1],
+			AuthorizationProvider: authorizationProvider[0],
 		}
 
 	default:
 		errorResponse.StatusCode = 404
 		errorResponse.ClientErrorMessage = "Authorization provider not found"
 		errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("Authorization provider not found")
-		return userAccountObject, errorResponse
+		return userAccount, errorResponse
 	}
+
+	return userAccount, errorResponse
+}
+
+func GetUserAccount(widgetObject map[string]interface{}, userAccount UserAccount, ettUcodeApi *sdk.ObjectFunction) (userAccountObject map[string]interface{}, errorResponse sdk.ResponseError) {
 
 	// User account request ...
 	var (
@@ -401,9 +409,9 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 		onlyExternalProviders = []string{"ets", "click"}
 		agentContractGuid     = cast.ToString(widgetObject["agent_contracts_id"])
 	)
-	if authorizationProvider[0] == "schmetterling" {
+	if userAccount.AuthorizationProvider == "schmetterling" {
 		orFilter = append(orFilter, map[string]interface{}{"agent_contracts_id": agentContractGuid, "external_agency_id": userAccount.ExternalAgencyId, "external_user_id": userAccount.ExternalUserId})
-	} else if userAccount.ExternalUserId != "" && sdk.Contains(onlyExternalProviders, authorizationProvider[0]) {
+	} else if userAccount.ExternalUserId != "" && sdk.Contains(onlyExternalProviders, userAccount.AuthorizationProvider) {
 		orFilter = append(orFilter, map[string]interface{}{"agent_contracts_id": agentContractGuid, "external_user_id": userAccount.ExternalUserId})
 	} else if userAccount.Email != "" {
 		orFilter = append(orFilter, map[string]interface{}{"email": userAccount.Email, "agent_contracts_id": agentContractGuid, "external_user_id": userAccount.ExternalUserId})
