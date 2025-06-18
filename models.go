@@ -158,6 +158,7 @@ type (
 		ErrorMessage       string
 		ClientErrorMessage string
 		Errors             []map[string]interface{}
+		ResponseHeader     map[string]interface{}
 	}
 
 	DoRequestApi struct {
