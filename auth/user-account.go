@@ -431,5 +431,13 @@ func GetUserAccountByAccessToken(widgetObject map[string]interface{}, accessToke
 	}
 	userAccountObject = userAccountResponse.Data.Data.Response[0]
 
+	if sdk.Contains(cast.ToStringSlice(userAccountObject["status"]), "inactive") {
+		errorResponse.StatusCode = 404
+		errorResponse.Description = response.Data["description"]
+		errorResponse.ClientErrorMessage = "Resource not found."
+		errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(errorResponse.ClientErrorMessage)
+		return
+	}
+
 	return userAccountObject, errorResponse
 }
