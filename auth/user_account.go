@@ -27,6 +27,8 @@ type UserAccount struct {
 	SelectedLanguage      string `json:"selectedLanguage,omitempty"`
 	SelectedCurrency      string `json:"selectedCurrency,omitempty"`
 	AuthorizationProvider string `json:"authorizationProvider,omitempty"`
+	Tenant                string `json:"tenant,omitempty"`
+	AuthId                string `json:"authId,omitempty"`
 }
 
 func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secretKey string, ettUcodeApi *sdk.ObjectFunction) (userAccount UserAccount, errorResponse sdk.ResponseError) {
@@ -175,7 +177,7 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 		}
 
 		var fullName = strings.Split(users[0].Name, " ")
-		userAccount = UserAccount{ExternalUserId: claims.RegisteredClaims.Sub, FirstName: users[0].Name, Email: users[0].Email, Phone: users[0].PhoneNumber, AuthorizationProvider: authorizationProvider[0]}
+		userAccount = UserAccount{ExternalUserId: claims.RegisteredClaims.Sub, FirstName: users[0].Name, Email: users[0].Email, Phone: users[0].PhoneNumber}
 		if len(fullName) == 2 {
 			userAccount.FirstName = fullName[0]
 			userAccount.LastName = fullName[1]
@@ -259,11 +261,10 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 		}
 
 		userAccount = UserAccount{
-			ExternalUserId:        userID,
-			Phone:                 beelineUserAccount.PhoneNumber,
-			FirstName:             beelineUserAccount.FirstName,
-			LastName:              beelineUserAccount.LastName,
-			AuthorizationProvider: authorizationProvider[0],
+			ExternalUserId: userID,
+			Phone:          beelineUserAccount.PhoneNumber,
+			FirstName:      beelineUserAccount.FirstName,
+			LastName:       beelineUserAccount.LastName,
 		}
 
 	case "ets":
@@ -305,7 +306,7 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 			}
 			return userAccount, errorResponse
 		}
-		userAccount = UserAccount{ExternalUserId: userID, Email: userID, AuthorizationProvider: authorizationProvider[0]}
+		userAccount = UserAccount{ExternalUserId: userID, Email: userID}
 
 	case "click":
 		// Click request ...
@@ -353,11 +354,10 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 		}
 
 		userAccount = UserAccount{
-			ExternalUserId:        strconv.Itoa(clickUserAccount.Result.ClientId),
-			Phone:                 clickUserAccount.Result.PhoneNumber,
-			FirstName:             clickUserAccount.Result.Name,
-			LastName:              clickUserAccount.Result.Surname,
-			AuthorizationProvider: authorizationProvider[0],
+			ExternalUserId: strconv.Itoa(clickUserAccount.Result.ClientId),
+			Phone:          clickUserAccount.Result.PhoneNumber,
+			FirstName:      clickUserAccount.Result.Name,
+			LastName:       clickUserAccount.Result.Surname,
 		}
 
 	case "schmetterling":
@@ -385,10 +385,9 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 		}
 
 		userAccount = UserAccount{
-			ExternalAgencyId:      tokenArr[0],
-			ExternalUserId:        tokenArr[1],
-			Email:                 tokenArr[1],
-			AuthorizationProvider: authorizationProvider[0],
+			ExternalAgencyId: tokenArr[0],
+			ExternalUserId:   tokenArr[1],
+			Email:            tokenArr[1],
 		}
 
 	default:
@@ -397,6 +396,10 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 		errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("Authorization provider not found")
 		return userAccount, errorResponse
 	}
+
+	userAccount.AuthorizationProvider = authorizationProvider[0]
+	userAccount.Tenant = cast.ToString(authorizationServiceObject["tenant"])
+	userAccount.AuthId = cast.ToString(authorizationServiceObject["auth_id"])
 
 	return userAccount, errorResponse
 }
