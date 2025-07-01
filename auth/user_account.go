@@ -3,6 +3,7 @@ package auth
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -12,7 +13,6 @@ import (
 	"github.com/asadbekGo/ett-code-sdk/tools/auth0"
 	"github.com/asadbekGo/ett-code-sdk/tools/beeline"
 	"github.com/asadbekGo/ett-code-sdk/tools/click"
-	"github.com/spf13/cast"
 )
 
 type UserAccount struct {
@@ -31,11 +31,49 @@ type UserAccount struct {
 	AuthId                string `json:"authId,omitempty"`
 }
 
+type Widget struct {
+	AuthorizationServices []struct {
+		Audience                    string   `json:"audience"`
+		AuthID                      string   `json:"auth_id"`
+		AuthName                    string   `json:"auth_name"`
+		AuthRedirectUrl             string   `json:"auth_redirect_url"`
+		ClientID                    string   `json:"client_id"`
+		ClientSecretCopy            string   `json:"client_secret_copy"`
+		Domain                      string   `json:"domain"`
+		GUID                        string   `json:"guid"`
+		ManagementClientID          string   `json:"management_client_id"`
+		ManagementClientSecretCopy  string   `json:"management_client_secret_copy"`
+		ManagementDomain            string   `json:"management_domain"`
+		Provider                    []string `json:"provider"`
+		Tenant                      string   `json:"tenant"`
+		TestCreateSftpServerDisable bool     `json:"test-create-sftp-server_disable"`
+		Token                       string   `json:"token"`
+		TokenExpireAt               string   `json:"token_expire_at"`
+	} `json:"authorization_services"`
+}
+
 func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secretKey string, ettUcodeApi *sdk.ObjectFunction) (userAccount UserAccount, errorResponse sdk.ResponseError) {
 
+	// Marshal widget object to JSON ...
+	body, err := json.Marshal(widgetObject)
+	if err != nil {
+		errorResponse.StatusCode = 500
+		errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
+		errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("Failed to marshal widget object:", err.Error())
+		return userAccount, errorResponse
+	}
+
+	var widget Widget
+	err = json.Unmarshal(body, &widget)
+	if err != nil {
+		errorResponse.StatusCode = 500
+		errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
+		errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("Failed to unmarshal widget object:", err.Error())
+		return userAccount, errorResponse
+	}
+
 	// Authorization service request ...
-	var authorizationServices = cast.ToSlice(widgetObject["authorization_services"])
-	if len(authorizationServices) <= 0 {
+	if len(widget.AuthorizationServices) <= 0 {
 		errorResponse.StatusCode = 404
 		errorResponse.ClientErrorMessage = "Authorization service not found"
 		errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("Authorization service not found")
@@ -45,13 +83,11 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 	var (
 		noAvailableAuthRedirectUrlHeaderValue = `Bearer realm="EasyToTravel", error="invalid_token", error_description="Access token invalid"`
 		authRedirectUrlHeaderValue            = noAvailableAuthRedirectUrlHeaderValue + `, authRedirectUrl="%s"`
-		authorizationServiceObject            = cast.ToStringMap(authorizationServices[0])
-		authorizationProvider                 = cast.ToStringSlice(authorizationServiceObject["provider"])
-		authRedirectUrl                       = cast.ToString(authorizationServiceObject["auth_redirect_url"])
+		authorizationService                  = widget.AuthorizationServices[0]
 	)
 	errorResponse.ResponseHeader = make(map[string]interface{})
 
-	if len(authorizationProvider) <= 0 {
+	if len(authorizationService.Provider) <= 0 {
 		errorResponse.StatusCode = 404
 		errorResponse.ClientErrorMessage = "Authorization provider not found"
 		errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("Authorization provider not found")
@@ -63,20 +99,20 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 		errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 		errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("Token is required")
 		errorResponse.ResponseHeader["WWW-Authenticate"] = noAvailableAuthRedirectUrlHeaderValue
-		if authRedirectUrl != "" {
-			errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
+		if authorizationService.AuthRedirectUrl != "" {
+			errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authorizationService.AuthRedirectUrl)
 		}
 		return userAccount, errorResponse
 	}
 
-	switch authorizationProvider[0] {
+	switch authorizationService.Provider[0] {
 	case "auth0":
 		// Auth0 request ...
 		var claims auth0.CustomClaims
 		claims, errorResponse = auth0.Auth0ValidateToken(
 			auth0.ValidateTokenRequest{
-				Domain:      cast.ToString(authorizationServiceObject["domain"]),
-				Audience:    cast.ToString(authorizationServiceObject["audience"]),
+				Domain:      authorizationService.Domain,
+				Audience:    authorizationService.Audience,
 				AccessToken: accessToken,
 			},
 			ettUcodeApi,
@@ -93,13 +129,9 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 		}
 
 		// Auth0 get token ...
-		var (
-			authorizationTokenExpireAt = cast.ToString(authorizationServiceObject["token_expire_at"])
-			isAuthorizationUpdateToken = true
-		)
-
-		if authorizationTokenExpireAt != "" {
-			expireTime, err := time.Parse(time.RFC3339, authorizationTokenExpireAt)
+		var isAuthorizationUpdateToken = true
+		if authorizationService.TokenExpireAt != "" {
+			expireTime, err := time.Parse(time.RFC3339, authorizationService.TokenExpireAt)
 			if err != nil {
 				errorResponse.StatusCode = 500
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
@@ -108,30 +140,25 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 			}
 
 			isAuthorizationUpdateToken = false
-			accessToken = cast.ToString(authorizationServiceObject["token"])
+			accessToken = authorizationService.Token
 			if !time.Now().UTC().Before(expireTime.Add(-time.Hour * 1)) {
 				isAuthorizationUpdateToken = true
 			}
 		}
 
 		if isAuthorizationUpdateToken {
-			var (
-				tokenResponse          auth0.TokenResponse
-				managementClientSecret = cast.ToString(authorizationServiceObject["management_client_secret_copy"])
-			)
-
-			managementClientSecret, err := sdk.Decrypt(secretKey, managementClientSecret)
+			var tokenResponse auth0.TokenResponse
+			authorizationService.ManagementClientSecretCopy, err = sdk.Decrypt(secretKey, authorizationService.ManagementClientSecretCopy)
 			if err != nil {
 				go ettUcodeApi.SendTelegram(ettUcodeApi.Logger.ErrorLog.Sprint("Failed to decrypt auth0 management client secret:", err.Error()))
-				managementClientSecret = cast.ToString(authorizationServiceObject["management_client_secret_copy"])
 			}
 
 			tokenResponse, errorResponse = auth0.Auth0GetToken(
 				auth0.Credential{
-					Domain:       cast.ToString(authorizationServiceObject["management_domain"]),
-					Audience:     cast.ToString(authorizationServiceObject["management_domain"]) + "/api/v2/",
-					ClientId:     cast.ToString(authorizationServiceObject["management_client_id"]),
-					ClientSecret: managementClientSecret,
+					Domain:       authorizationService.ManagementDomain,
+					Audience:     authorizationService.ManagementDomain + "/api/v2/",
+					ClientId:     authorizationService.ManagementClientID,
+					ClientSecret: authorizationService.ManagementClientSecretCopy,
 					GrantType:    "client_credentials",
 				},
 				ettUcodeApi,
@@ -142,7 +169,7 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 
 			tokenExpiretat := time.Now().Add(time.Second * time.Duration(tokenResponse.ExpiresIn)).Format(time.RFC3339)
 
-			var updateAuthorizationServiceRequest = sdk.Request{Data: map[string]interface{}{"guid": authorizationServiceObject["guid"], "token": tokenResponse.AccessToken, "token_expire_at": tokenExpiretat}}
+			var updateAuthorizationServiceRequest = sdk.Request{Data: map[string]interface{}{"guid": authorizationService.GUID, "token": tokenResponse.AccessToken, "token_expire_at": tokenExpiretat}}
 			_, response, err := ettUcodeApi.UpdateObject(&sdk.Argument{TableSlug: "authorization_services", Request: updateAuthorizationServiceRequest, BlockBuilder: true, DisableFaas: true})
 			if err != nil {
 				errorResponse.StatusCode = 500
@@ -158,8 +185,8 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 		var users []auth0.User
 		users, errorResponse = auth0.Auth0GetUsers(
 			auth0.GetUsersRequest{
-				Domain:      cast.ToString(authorizationServiceObject["domain"]),
-				Audience:    cast.ToString(authorizationServiceObject["domain"]) + "/api/v2/",
+				Domain:      authorizationService.Domain,
+				Audience:    authorizationService.Domain + "/api/v2/",
 				Sub:         claims.RegisteredClaims.Sub,
 				AccessToken: accessToken,
 			},
@@ -202,21 +229,19 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 
 	case "beeline":
 		// Beeline request ...
-		var clientSecret = cast.ToString(authorizationServiceObject["client_secret_copy"])
-		clientSecret, err := sdk.Decrypt(secretKey, clientSecret)
+		authorizationService.ClientSecretCopy, err = sdk.Decrypt(secretKey, authorizationService.ClientSecretCopy)
 		if err != nil {
 			go ettUcodeApi.SendTelegram(ettUcodeApi.Logger.ErrorLog.Sprint("Failed to decrypt beeline client secret:", err.Error()))
-			clientSecret = cast.ToString(authorizationServiceObject["client_secret_copy"])
 		}
 
-		userID, err := beeline.ValidateToken(clientSecret, accessToken)
+		userID, err := beeline.ValidateToken(authorizationService.ClientSecretCopy, accessToken)
 		if err != nil {
 			errorResponse.StatusCode = 401
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 			errorResponse.ResponseHeader["WWW-Authenticate"] = noAvailableAuthRedirectUrlHeaderValue
-			if authRedirectUrl != "" {
-				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
+			if authorizationService.AuthRedirectUrl != "" {
+				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authorizationService.AuthRedirectUrl)
 			}
 			return userAccount, errorResponse
 		}
@@ -225,15 +250,15 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("User id is required")
 			errorResponse.ResponseHeader["WWW-Authenticate"] = noAvailableAuthRedirectUrlHeaderValue
-			if authRedirectUrl != "" {
-				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
+			if authorizationService.AuthRedirectUrl != "" {
+				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authorizationService.AuthRedirectUrl)
 			}
 			return userAccount, errorResponse
 		}
 
 		beelineUserAccount, err := beeline.GetUser(
 			beeline.GetUsersRequest{
-				Domain:      cast.ToString(authorizationServiceObject["domain"]),
+				Domain:      authorizationService.Domain,
 				AccessToken: accessToken,
 			},
 		)
@@ -250,8 +275,8 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("Phone number is required")
 			errorResponse.ResponseHeader["WWW-Authenticate"] = noAvailableAuthRedirectUrlHeaderValue
-			if authRedirectUrl != "" {
-				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
+			if authorizationService.AuthRedirectUrl != "" {
+				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authorizationService.AuthRedirectUrl)
 			}
 			return userAccount, errorResponse
 		}
@@ -275,25 +300,20 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("Invalid accessToken")
 			errorResponse.ResponseHeader["WWW-Authenticate"] = noAvailableAuthRedirectUrlHeaderValue
-			if authRedirectUrl != "" {
-				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
+			if authorizationService.AuthRedirectUrl != "" {
+				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authorizationService.AuthRedirectUrl)
 			}
 			return userAccount, errorResponse
 		}
 
-		var (
-			userID       = accessTokenArr[0]
-			clientSecret = cast.ToString(authorizationServiceObject["client_secret_copy"])
-		)
-
-		clientSecret, err := sdk.Decrypt(secretKey, clientSecret)
+		var userID = accessTokenArr[0]
+		authorizationService.ClientSecretCopy, err = sdk.Decrypt(secretKey, authorizationService.ClientSecretCopy)
 		if err != nil {
 			go ettUcodeApi.SendTelegram(ettUcodeApi.Logger.ErrorLog.Sprint("Failed to decrypt ets client secret:", err.Error()))
-			clientSecret = cast.ToString(authorizationServiceObject["client_secret_copy"])
 		}
 
 		var hasher = md5.New()
-		hasher.Write([]byte(clientSecret + userID))
+		hasher.Write([]byte(authorizationService.ClientSecretCopy + userID))
 		hashBytes := hasher.Sum(nil)
 		hashString := hex.EncodeToString(hashBytes)
 		if hashString != accessTokenArr[1] {
@@ -301,8 +321,8 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("Invalid accessToken")
 			errorResponse.ResponseHeader["WWW-Authenticate"] = noAvailableAuthRedirectUrlHeaderValue
-			if authRedirectUrl != "" {
-				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
+			if authorizationService.AuthRedirectUrl != "" {
+				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authorizationService.AuthRedirectUrl)
 			}
 			return userAccount, errorResponse
 		}
@@ -310,17 +330,15 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 
 	case "click":
 		// Click request ...
-		var clientSecret = cast.ToString(authorizationServiceObject["client_secret_copy"])
-		clientSecret, err := sdk.Decrypt(secretKey, clientSecret)
+		authorizationService.ClientSecretCopy, err = sdk.Decrypt(secretKey, authorizationService.ClientSecretCopy)
 		if err != nil {
 			go ettUcodeApi.SendTelegram(ettUcodeApi.Logger.ErrorLog.Sprint("Error while decrypting click clientSecret " + err.Error()))
-			clientSecret = cast.ToString(authorizationServiceObject["client_secret_copy"])
 		}
 
 		clickUserAccount, err := click.GetUser(
 			click.GetUsersRequest{
-				Domain:      cast.ToString(authorizationServiceObject["domain"]),
-				AccessToken: clientSecret,
+				Domain:      authorizationService.Domain,
+				AccessToken: authorizationService.ClientSecretCopy,
 				WebSession:  accessToken,
 			},
 		)
@@ -336,8 +354,8 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(clickUserAccount.Error.Message)
 			errorResponse.ResponseHeader["WWW-Authenticate"] = noAvailableAuthRedirectUrlHeaderValue
-			if authRedirectUrl != "" {
-				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
+			if authorizationService.AuthRedirectUrl != "" {
+				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authorizationService.AuthRedirectUrl)
 			}
 			return userAccount, errorResponse
 		}
@@ -347,8 +365,8 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("Client id is required")
 			errorResponse.ResponseHeader["WWW-Authenticate"] = noAvailableAuthRedirectUrlHeaderValue
-			if authRedirectUrl != "" {
-				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
+			if authorizationService.AuthRedirectUrl != "" {
+				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authorizationService.AuthRedirectUrl)
 			}
 			return userAccount, errorResponse
 		}
@@ -367,8 +385,8 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("Invalid accessToken")
 			errorResponse.ResponseHeader["WWW-Authenticate"] = noAvailableAuthRedirectUrlHeaderValue
-			if authRedirectUrl != "" {
-				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
+			if authorizationService.AuthRedirectUrl != "" {
+				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authorizationService.AuthRedirectUrl)
 			}
 			return userAccount, errorResponse
 		}
@@ -378,8 +396,8 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("Invalid accessToken")
 			errorResponse.ResponseHeader["WWW-Authenticate"] = noAvailableAuthRedirectUrlHeaderValue
-			if authRedirectUrl != "" {
-				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authRedirectUrl)
+			if authorizationService.AuthRedirectUrl != "" {
+				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authorizationService.AuthRedirectUrl)
 			}
 			return userAccount, errorResponse
 		}
@@ -397,9 +415,9 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 		return userAccount, errorResponse
 	}
 
-	userAccount.AuthorizationProvider = authorizationProvider[0]
-	userAccount.Tenant = cast.ToString(authorizationServiceObject["tenant"])
-	userAccount.AuthId = cast.ToString(authorizationServiceObject["auth_id"])
+	userAccount.AuthorizationProvider = authorizationService.Provider[0]
+	userAccount.Tenant = authorizationService.Tenant
+	userAccount.AuthId = authorizationService.AuthID
 
 	return userAccount, errorResponse
 }
