@@ -98,9 +98,11 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 		errorResponse.StatusCode = 401
 		errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 		errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint("Token is required")
-		errorResponse.ResponseHeader["WWW-Authenticate"] = noAvailableAuthRedirectUrlHeaderValue
-		if authorizationService.AuthRedirectUrl != "" {
-			errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authorizationService.AuthRedirectUrl)
+		if authorizationService.Provider[0] != "auth0" {
+			errorResponse.ResponseHeader["WWW-Authenticate"] = noAvailableAuthRedirectUrlHeaderValue
+			if authorizationService.AuthRedirectUrl != "" {
+				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authorizationService.AuthRedirectUrl)
+			}
 		}
 		return userAccount, errorResponse
 	}
