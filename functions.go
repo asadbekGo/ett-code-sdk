@@ -114,9 +114,9 @@ func (o *ObjectFunction) MultipleUpdate(arg *Argument) (ClientApiMultipleUpdateR
 
 func (o *ObjectFunction) UpdateManyQuery(arg *Argument) (ClientApiMultipleUpdateResponse, Response, error) {
 	var (
-		response             = Response{Status: "done"}
-		multipleUpdateObject = ClientApiMultipleUpdateResponse{}
-		url                  = fmt.Sprintf("%s/v1/object/update-many-query/%s", o.Cfg.BaseURL, arg.TableSlug)
+		response         = Response{Status: "done"}
+		updateManyObject = ClientApiMultipleUpdateResponse{}
+		url              = fmt.Sprintf("%s/v1/object/update-many-query/%s", o.Cfg.BaseURL, arg.TableSlug)
 	)
 
 	var appId = o.Cfg.AppId
@@ -124,21 +124,21 @@ func (o *ObjectFunction) UpdateManyQuery(arg *Argument) (ClientApiMultipleUpdate
 		appId = arg.AppId
 	}
 
-	multipleUpdateObjectsResponseInByte, err := DoRequest(arg.Ctx, url, http.MethodPut, arg.Request, appId, nil)
+	updateManyObjectsResponseInByte, err := DoRequest(arg.Ctx, url, http.MethodPut, arg.Request, appId, nil)
 	if err != nil {
-		response.Data = map[string]interface{}{"description": string(multipleUpdateObjectsResponseInByte), "message": "Error while update many query objects", "error": err.Error()}
+		response.Data = map[string]interface{}{"description": string(updateManyObjectsResponseInByte), "message": "Error while update many query objects", "error": err.Error()}
 		response.Status = "error"
 		return ClientApiMultipleUpdateResponse{}, response, err
 	}
 
-	err = json.Unmarshal(multipleUpdateObjectsResponseInByte, &multipleUpdateObject)
+	err = json.Unmarshal(updateManyObjectsResponseInByte, &updateManyObject)
 	if err != nil {
-		response.Data = map[string]interface{}{"description": string(multipleUpdateObjectsResponseInByte), "message": "Error while unmarshalling update many query objects", "error": err.Error()}
+		response.Data = map[string]interface{}{"description": string(updateManyObjectsResponseInByte), "message": "Error while unmarshalling update many query objects", "error": err.Error()}
 		response.Status = "error"
 		return ClientApiMultipleUpdateResponse{}, response, err
 	}
 
-	return multipleUpdateObject, response, nil
+	return updateManyObject, response, nil
 }
 
 func (o *ObjectFunction) GetList(arg *Argument) (GetListClientApiResponse, Response, error) {
@@ -357,6 +357,35 @@ func (o *ObjectFunction) Delete(arg *Argument) (Response, error) {
 	}
 
 	return response, nil
+}
+
+func (o *ObjectFunction) DeleteManyQuery(arg *Argument) (ClientApiMultipleUpdateResponse, Response, error) {
+	var (
+		response         = Response{Status: "done"}
+		deleteManyObject = ClientApiMultipleUpdateResponse{}
+		url              = fmt.Sprintf("%s/v1/object/delete-many-query/%s", o.Cfg.BaseURL, arg.TableSlug)
+	)
+
+	var appId = o.Cfg.AppId
+	if arg.AppId != "" {
+		appId = arg.AppId
+	}
+
+	deleteManyObjectsResponseInByte, err := DoRequest(arg.Ctx, url, http.MethodDelete, arg.Request, appId, nil)
+	if err != nil {
+		response.Data = map[string]interface{}{"description": string(deleteManyObjectsResponseInByte), "message": "Error while deleting many query objects", "error": err.Error()}
+		response.Status = "error"
+		return ClientApiMultipleUpdateResponse{}, response, err
+	}
+
+	err = json.Unmarshal(deleteManyObjectsResponseInByte, &deleteManyObject)
+	if err != nil {
+		response.Data = map[string]interface{}{"description": string(deleteManyObjectsResponseInByte), "message": "Error while unmarshalling delete many query objects", "error": err.Error()}
+		response.Status = "error"
+		return ClientApiMultipleUpdateResponse{}, response, err
+	}
+
+	return deleteManyObject, response, nil
 }
 
 func (o *ObjectFunction) MultipleDelete(arg *Argument) (Response, error) {
