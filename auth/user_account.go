@@ -32,28 +32,31 @@ type UserAccount struct {
 }
 
 type Widget struct {
-	AuthorizationServices []struct {
-		Audience                    string   `json:"audience"`
-		AuthID                      string   `json:"auth_id"`
-		AuthName                    string   `json:"auth_name"`
-		AuthRedirectUrl             string   `json:"auth_redirect_url"`
-		ClientID                    string   `json:"client_id"`
-		ClientSecretCopy            string   `json:"client_secret_copy"`
-		Domain                      string   `json:"domain"`
-		GUID                        string   `json:"guid"`
-		ManagementClientID          string   `json:"management_client_id"`
-		ManagementClientSecretCopy  string   `json:"management_client_secret_copy"`
-		ManagementDomain            string   `json:"management_domain"`
-		Provider                    []string `json:"provider"`
-		Tenant                      string   `json:"tenant"`
-		TestCreateSftpServerDisable bool     `json:"test-create-sftp-server_disable"`
-		Token                       string   `json:"token"`
-		TokenExpireAt               string   `json:"token_expire_at"`
-	} `json:"authorization_services"`
+	AuthorizationServices []AuthorizationService `json:"authorization_services"`
+}
+
+type AuthorizationService struct {
+	Audience                    string   `json:"audience"`
+	AuthID                      string   `json:"auth_id"`
+	AuthName                    string   `json:"auth_name"`
+	AuthRedirectUrl             string   `json:"auth_redirect_url"`
+	ClientID                    string   `json:"client_id"`
+	ClientSecretCopy            string   `json:"client_secret_copy"`
+	Domain                      string   `json:"domain"`
+	GUID                        string   `json:"guid"`
+	ManagementClientID          string   `json:"management_client_id"`
+	ManagementClientSecretCopy  string   `json:"management_client_secret_copy"`
+	ManagementDomain            string   `json:"management_domain"`
+	Provider                    []string `json:"provider"`
+	Tenant                      string   `json:"tenant"`
+	TestCreateSftpServerDisable bool     `json:"test-create-sftp-server_disable"`
+	Token                       string   `json:"token"`
+	TokenExpireAt               string   `json:"token_expire_at"`
 }
 
 func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secretKey string, ettUcodeApi *sdk.ObjectFunction) (userAccount UserAccount, errorResponse sdk.ResponseError) {
 
+	fmt.Println("dadadsaddsaadsdadsdas", accessToken)
 	// Marshal widget object to JSON ...
 	body, err := json.Marshal(widgetObject)
 	if err != nil {
