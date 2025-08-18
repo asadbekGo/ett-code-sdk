@@ -6,7 +6,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	crypt_rand "crypto/rand"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -193,19 +192,6 @@ func SortDescendingSliceInt(slice []int) {
 			}
 		}
 	}
-}
-
-// hashSHA256 hashes the input data using SHA256 algorithm
-func HashSHA256(data string) string {
-	hash := sha256.New()
-	hash.Write([]byte(data))
-	hashedData := hash.Sum(nil)
-	return hex.EncodeToString(hashedData)
-}
-
-// verifySHA256 verifies if the input data matches the hashed data
-func VerifySHA256(data, hashedData string) bool {
-	return HashSHA256(data) == hashedData
 }
 
 func Encrypt(secretKey, plaintext string) (string, error) {
