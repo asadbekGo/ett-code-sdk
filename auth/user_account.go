@@ -56,7 +56,6 @@ type AuthorizationService struct {
 
 func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secretKey string, ettUcodeApi *sdk.ObjectFunction) (userAccount UserAccount, errorResponse sdk.ResponseError) {
 
-	fmt.Println("dadadsaddsaadsdadsdas", accessToken)
 	// Marshal widget object to JSON ...
 	body, err := json.Marshal(widgetObject)
 	if err != nil {
