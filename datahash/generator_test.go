@@ -208,8 +208,8 @@ var ValidateDataHashTestCases = []ValidateDataHashTestCase{
 			ProductVariantID: "PV-000000623",
 			AdultPrice: Price{
 				PaxType:    "adult",
-				GrossPrice: 75,
 				NetPrice:   75,
+				GrossPrice: 75,
 			},
 			ChildPrice: Price{
 				PaxType:    "child",
@@ -246,7 +246,6 @@ var ValidateDataHashTestCases = []ValidateDataHashTestCase{
 		clientDatahash: "ac3b70fb7d9d174f25914449408a29a813d51c7e2070443513c88912c282f1d5",
 		expectError:    true,
 	},
-	
 }
 
 func TestValidateDataHash(t *testing.T) {
@@ -273,6 +272,7 @@ type (
 		expectError      bool
 	}
 )
+
 var GenerateDataHashTestCases = []GenerateDataHashTestCase{
 	// test cases for lounge Datahash
 	{
@@ -355,6 +355,7 @@ var GenerateDataHashTestCases = []GenerateDataHashTestCase{
 		expectError:      false,
 	},
 }
+
 func TestGenerateDataHash(t *testing.T) {
 	for _, tc := range GenerateDataHashTestCases {
 		t.Run(tc.name, func(t *testing.T) {

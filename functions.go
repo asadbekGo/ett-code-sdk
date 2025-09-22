@@ -213,6 +213,8 @@ func (o *ObjectFunction) GetListSlim(arg *Argument) (GetListClientApiResponse, R
 	if _, ok := arg.Request.Data["page"].(int); ok {
 		page = arg.Request.Data["page"].(int)
 		url = fmt.Sprintf("%s&offset=%d", url, (page-1)*limit)
+	} else if _, ok := arg.Request.Data["offset"].(int); ok {
+		url = fmt.Sprintf("%s&offset=%d", url, arg.Request.Data["offset"].(int))
 	}
 
 	url = fmt.Sprintf("%s&data=%s", url, httpUrl.QueryEscape(string(reqObject)))
@@ -254,6 +256,8 @@ func (o *ObjectFunction) GetListAggregate(arg *Argument) (GetListClientApiRespon
 	if _, ok := arg.Request.Data["page"].(int); ok {
 		page = arg.Request.Data["page"].(int)
 		url = fmt.Sprintf("%s&offset=%d", url, (page-1)*limit)
+	} else if _, ok := arg.Request.Data["offset"].(int); ok {
+		url = fmt.Sprintf("%s&offset=%d", url, arg.Request.Data["offset"].(int))
 	}
 
 	var appId = o.Cfg.AppId
