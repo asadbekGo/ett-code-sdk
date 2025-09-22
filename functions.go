@@ -282,6 +282,47 @@ func (o *ObjectFunction) GetListAggregate(arg *Argument) (GetListClientApiRespon
 	return getListAggregate, response, nil
 }
 
+func (o *ObjectFunction) GetQueryAggregation(arg *Argument) (ClientApiAggregationResponse, Response, error) {
+	var (
+		response         Response
+		getListAggregate ClientApiAggregationResponse
+		url              = fmt.Sprintf("%s/v2/items/%s/aggregation", o.Cfg.BaseURL, arg.TableSlug)
+	)
+
+	if arg.Request.Data == nil {
+		response.Data = map[string]interface{}{"message": "Request data is nil"}
+		response.Status = "error"
+		return ClientApiAggregationResponse{}, response, fmt.Errorf("request data is nil")
+	}
+
+	if _, ok := arg.Request.Data["pipelines"]; !ok {
+		response.Data = map[string]interface{}{"message": "Pipelines key not found in request data"}
+		response.Status = "error"
+		return ClientApiAggregationResponse{}, response, fmt.Errorf("pipelines key not found in request data")
+	}
+
+	var appId = o.Cfg.AppId
+	if arg.AppId != "" {
+		appId = arg.AppId
+	}
+
+	getListAggregateResponseInByte, err := DoRequest(arg.Ctx, url, http.MethodPost, arg.Request, appId, nil)
+	if err != nil {
+		response.Data = map[string]interface{}{"description": string(getListAggregateResponseInByte), "message": "Can't sent request", "error": err.Error()}
+		response.Status = "error"
+		return ClientApiAggregationResponse{}, response, err
+	}
+
+	err = json.Unmarshal(getListAggregateResponseInByte, &getListAggregate)
+	if err != nil {
+		response.Data = map[string]interface{}{"description": string(getListAggregateResponseInByte), "message": "Error while unmarshalling get query aggregation object", "error": err.Error()}
+		response.Status = "error"
+		return ClientApiAggregationResponse{}, response, err
+	}
+
+	return getListAggregate, response, nil
+}
+
 func (o *ObjectFunction) GetSingle(arg *Argument) (ClientApiResponse, Response, error) {
 	var (
 		response  Response
