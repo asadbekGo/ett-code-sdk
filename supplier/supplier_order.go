@@ -3,6 +3,8 @@ package supplier
 import (
 	"bytes"
 	"context"
+	"crypto/sha1"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -497,7 +499,6 @@ type (
 		Password    string `json:"password"`
 		URL         string `json:"url"`
 	}
-
 	LoginResponse struct {
 		ID          string   `json:"id"`
 		Session     string   `json:"session"`
@@ -590,7 +591,6 @@ type (
 		AccessToken string `json:"access_token"`
 		Expires     int    `json:"expires_in"`
 	}
-
 	AAGenerateCouponRequest struct {
 		URL                 string  `json:"url"`
 		Token               string  `json:"token"`
@@ -619,34 +619,28 @@ type (
 	AAContract struct {
 		ID string `json:"id"`
 	}
-
 	AAPassenger struct {
 		GivenName   string `json:"givenName"`
 		FamilyName  string `json:"familyName"`
 		MiddleName  string `json:"middleName"`
 		DateOfBirth string `json:"dateOfBirth"`
 	}
-
 	AAResource struct {
 		Resources AAResourceObject `json:"resource"`
 		Flights   []AAFlight       `json:"flights"`
 	}
-
 	AAResourceObject struct {
 		ID string `json:"id"`
 	}
-
 	AACity struct {
 		ID string `json:"id"`
 	}
-
 	AAFlight struct {
 		City   AACity `json:"city"`
 		Type   string `json:"type"`
 		Date   string `json:"date"`
 		Number string `json:"number"`
 	}
-
 	AAFlightInfo struct {
 		City struct {
 			ID string `json:"id"`
@@ -712,6 +706,33 @@ type (
 		NeedStroller             bool
 		NeedsWheelchair          bool
 		FlightRoute              string
+	}
+	HighPassCouponData struct {
+		CouponCode string `json:"coupon_code"`
+		QrData     string `json:"qr_data"`
+		OrderId    string `json:"order_id"`
+	}
+
+	HighPassHashedOrderRuqust struct {
+		Data      string `json:"data"`
+		Signature string `json:"signature"`
+	}
+	OrderResponse struct {
+		Orders []Order `json:"orders"`
+	}
+
+	Order struct {
+		PassengerName    string   `json:"passengerName"`
+		HighPassOrderID  string   `json:"highPassOrderId"`
+		BookingCode      string   `json:"bookingCode"`
+		OrderNumber      int      `json:"orderNumber"`
+		AirportIATACode  string   `json:"airportIataCode"`
+		ServiceID        string   `json:"serviceId"`
+		ServiceName      string   `json:"serviceName"`
+		ServiceDateLocal string   `json:"serviceDateLocal"`
+		Price            float64  `json:"price"`
+		QRData           []string `json:"qrData"`
+		ErrorMessage     string   `json:"errorMessage"`
 	}
 	// isg
 	ISGServiceRequest struct {
@@ -1155,6 +1176,84 @@ func LoginHighPass(req LoginRequest) (LoginResponse, error) {
 		Token:   loginResponse.AccessToken,
 		Expires: time.Now().Add(time.Duration(loginResponse.ExpiresIn) * time.Second).Format(time.RFC3339),
 	}, err
+}
+
+func CreateHighPass(request HighPassCrateOrderRequest) (HighPassCouponData, error) {
+	jsonOrderData, err := json.Marshal(HighPassOrder{
+		PublicAPIKey: request.Order.PublicAPIKey,
+		Orders:       request.Order.Orders,
+	},
+	)
+	if err != nil {
+		return HighPassCouponData{}, err
+	}
+
+	jsonDataBase64 := base64.StdEncoding.EncodeToString(jsonOrderData)
+
+	signatureSha1 := sha1ToBase64(request.PrivateKey + jsonDataBase64 + request.PrivateKey)
+
+	jsonData, err := json.Marshal(HighPassHashedOrderRuqust{
+		Data:      jsonDataBase64,
+		Signature: signatureSha1,
+	})
+	if err != nil {
+		return HighPassCouponData{}, err
+	}
+
+	req, err := http.NewRequest("POST", request.URL+"/api/v1/orders", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return HighPassCouponData{}, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+request.Token)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: 40 * time.Second,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return HighPassCouponData{}, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return HighPassCouponData{}, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return HighPassCouponData{}, errors.New(fmt.Sprintln("API request failed with status code:", resp.StatusCode, "body:", string(body)))
+	}
+
+	var order OrderResponse
+	if err := json.Unmarshal(body, &order); err != nil {
+		return HighPassCouponData{}, errors.New(fmt.Sprintln("Error decoding JSON response: "+err.Error(), "body:", string(body)))
+	}
+
+	if len(order.Orders) <= 0 {
+		return HighPassCouponData{}, errors.New("No orders found in response body:" + string(body))
+	}
+
+	if order.Orders[0].ErrorMessage != "" {
+		return HighPassCouponData{}, errors.New(order.Orders[0].ErrorMessage)
+	}
+
+	response := HighPassCouponData{
+		CouponCode: order.Orders[0].BookingCode,
+		OrderId:    order.Orders[0].HighPassOrderID,
+	}
+
+	if len(order.Orders[0].QRData) > 0 {
+		response.QrData = order.Orders[0].QRData[0]
+	}
+
+	return response, nil
+}
+
+func sha1ToBase64(data string) string {
+	hash := sha1.Sum([]byte(data))                    // SHA1 hash (returns [20]byte)
+	return base64.StdEncoding.EncodeToString(hash[:]) // Convert to base64 string
 }
 
 func CreateISGService(reqData ISGServiceRequest) (ISGServiceResponse, error) {
