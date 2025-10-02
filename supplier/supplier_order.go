@@ -42,7 +42,7 @@ type (
 		agentTransactionId string
 		agentOrderItemId   string
 	}
-	productData struct {
+	ProductData struct {
 		productValue      float64
 		locationShortCode float64
 		dfCode            string
@@ -60,7 +60,7 @@ type (
 func CreateOrder(supplier SupplierData,
 	order OrderData,
 	additionalData AdditionalData,
-	productData productData,
+	productData ProductData,
 	SendtoETT func(text string),
 	resourceMutex *sync.Mutex,
 	ettUcodeApi *sdk.ObjectFunction,
