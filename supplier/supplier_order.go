@@ -36,22 +36,22 @@ type (
 		Phone          string `json:"phone"`
 	}
 	OrderData struct {
-		firstName          string
-		lastName           string
-		totalPax           int
-		paxType            []string
-		productDate        string
-		agentTransactionId string
-		agentOrderItemId   string
+		FirstName          string
+		LastName           string
+		TotalPax           int
+		PaxType            []string
+		ProductDate        string
+		AgentTransactionId string
+		AgentOrderItemId   string
 	}
 	ProductData struct {
-		productValue      float64
-		locationShortCode float64
-		dfCode            string
-		aaCode            string
-		hpCode            string
-		timezoneOffset    string
-		destinationCity   string
+		ProductValue      float64
+		LocationShortCode float64
+		DFCode            string
+		AACode            string
+		HpCode            string
+		TimezoneOffset    string
+		DestinationCity   string
 	}
 	AdditionalData struct {
 		EnvironmentId string
@@ -114,7 +114,7 @@ func CreateOrder(supplier SupplierData,
 			supplier.Token = login.Token
 		}
 
-		visitDate, err := time.Parse(time.DateOnly, order.productDate)
+		visitDate, err := time.Parse(time.DateOnly, order.ProductDate)
 		if err != nil {
 			resourceMutex.Lock()
 			defer resourceMutex.Unlock()
@@ -132,13 +132,13 @@ func CreateOrder(supplier SupplierData,
 		couponCode, err = GenerateCouponPPG(CouponInput{
 			URL:               supplier.APIUrl,
 			Token:             supplier.Token,
-			FirstName:         order.firstName,
-			LastName:          order.lastName,
+			FirstName:         order.FirstName,
+			LastName:          order.LastName,
 			StartDate:         visitDate.AddDate(0, 0, -1).Format(time.DateOnly),
 			EndDate:           visitDate.AddDate(0, 0, 1).Format(time.DateOnly),
 			AishortCode:       supplier.AiShortCode,
-			ProductValue:      productData.productValue,
-			LocationShortCode: productData.locationShortCode,
+			ProductValue:      productData.ProductValue,
+			LocationShortCode: productData.LocationShortCode,
 		})
 		if err != nil {
 			resourceMutex.Lock()
@@ -161,8 +161,8 @@ func CreateOrder(supplier SupplierData,
 			return
 		}
 
-		if IsCurrentDate(order.productDate, productData.timezoneOffset) {
-			order.productDate, err = Add10Minutes(productData.timezoneOffset)
+		if IsCurrentDate(order.ProductDate, productData.TimezoneOffset) {
+			order.ProductDate, err = Add10Minutes(productData.TimezoneOffset)
 			if err != nil {
 				errorResponse.StatusCode = 422
 				errorResponse.Description = response.Data["description"]
@@ -178,12 +178,12 @@ func CreateOrder(supplier SupplierData,
 			Username:           supplier.Username,
 			Password:           supplier.Password,
 			ProgramId:          programmIdInt,
-			FirstName:          order.firstName + order.lastName,
-			RequestIdentifier:  order.agentTransactionId,
-			OutletId:           productData.dfCode,
-			ValidFrom:          order.productDate,
-			BookingReferenceNo: order.agentOrderItemId,
-			TotalVisit:         order.totalPax,
+			FirstName:          order.FirstName + order.LastName,
+			RequestIdentifier:  order.AgentTransactionId,
+			OutletId:           productData.DFCode,
+			ValidFrom:          order.ProductDate,
+			BookingReferenceNo: order.AgentOrderItemId,
+			TotalVisit:         order.TotalPax,
 		})
 		if err != nil {
 			// ettUcodeApi.SendTelegram("GenerateCouponDF err:" + err.Error())
@@ -260,7 +260,7 @@ func CreateOrder(supplier SupplierData,
 			supplier.Token = login.Token
 		}
 
-		if len(order.paxType) <= 0 {
+		if len(order.PaxType) <= 0 {
 			resourceMutex.Lock()
 			defer resourceMutex.Unlock()
 			errorResponse.StatusCode = 500
@@ -278,12 +278,12 @@ func CreateOrder(supplier SupplierData,
 			URL:                 supplier.APIUrl,
 			Token:               supplier.Token,
 			SupplierAiShortCode: supplier.AiShortCode,
-			FirstName:           order.firstName,
-			LastName:            order.lastName,
-			PaxType:             order.paxType[0],
-			DestinationCity:     productData.destinationCity,
-			VisitDate:           order.productDate,
-			AACode:              productData.aaCode,
+			FirstName:           order.FirstName,
+			LastName:            order.LastName,
+			PaxType:             order.PaxType[0],
+			DestinationCity:     productData.DestinationCity,
+			VisitDate:           order.ProductDate,
+			AACode:              productData.AACode,
 			ContactName:         supplier.ContactPerson,
 			ContactEmail:        supplier.Email,
 			ContactPhone:        supplier.Phone,
@@ -319,7 +319,7 @@ func CreateOrder(supplier SupplierData,
 		resourceResponse, err := GetResourceID(AAGenerateCouponRequest{
 			URL:    supplier.APIUrl,
 			Token:  supplier.Token,
-			AACode: productData.aaCode,
+			AACode: productData.AACode,
 		})
 		if err != nil {
 			resourceMutex.Lock()
@@ -333,7 +333,7 @@ func CreateOrder(supplier SupplierData,
 		}
 
 		var organization = cast.ToStringMap(resourceResponse["organization"])
-		AAFlightInfo := fmt.Sprintf(`{"orderId": %d, "organizationId": "%s",  "city": {"id": "%s"}, "type": "Departure", "date": "%s", "number": "-"}`, cast.ToInt(createOrderEveryLoungeResponse["id"]), organization["id"], productData.destinationCity, order.productDate)
+		AAFlightInfo := fmt.Sprintf(`{"orderId": %d, "organizationId": "%s",  "city": {"id": "%s"}, "type": "Departure", "date": "%s", "number": "-"}`, cast.ToInt(createOrderEveryLoungeResponse["id"]), organization["id"], productData.DestinationCity, order.ProductDate)
 		createOrderItemRequest[index]["flight_info"] = AAFlightInfo
 	case "highpass":
 		expireTime, err := time.Parse(time.RFC3339, supplier.TokenExpiresAt)
@@ -373,7 +373,7 @@ func CreateOrder(supplier SupplierData,
 		}
 
 		var (
-			key             = productData.hpCode + "|" + order.productDate
+			key             = productData.HpCode + "|" + order.ProductDate
 			flightInfoStr   = cast.ToString(orderItemData["flight_info"])
 			counts          = hpCodePaxInfo[key]
 			otherPassengers = strings.Join(counts.Names, ", ")
@@ -395,13 +395,13 @@ func CreateOrder(supplier SupplierData,
 
 		if flightInfo.FlightNumber != "" {
 			if counts.TerminalType == "arrival" || counts.TerminalType == "transit" {
-				order.productDate = flightInfo.ArrivalTime
+				order.ProductDate = flightInfo.ArrivalTime
 			} else {
-				order.productDate = flightInfo.DepartureTime
+				order.ProductDate = flightInfo.DepartureTime
 			}
 		} else {
-			if IsCurrentDate(order.productDate, counts.Offset) {
-				order.productDate, err = Add10Minutes(counts.Offset)
+			if IsCurrentDate(order.ProductDate, counts.Offset) {
+				order.ProductDate, err = Add10Minutes(counts.Offset)
 				if err != nil {
 					errorResponse.StatusCode = 422
 					errorResponse.Description = response.Data["description"]
@@ -435,10 +435,10 @@ func CreateOrder(supplier SupplierData,
 					PublicAPIKey: supplier.AiShortCode,
 					Orders: []HighPassOrderItem{
 						{
-							ServiceID:                              productData.hpCode,
-							ServiceDate:                            order.productDate,
-							FirstName:                              order.firstName,
-							LastName:                               order.lastName,
+							ServiceID:                              productData.HpCode,
+							ServiceDate:                            order.ProductDate,
+							FirstName:                              order.FirstName,
+							LastName:                               order.LastName,
 							AdultCount:                             counts.Adults,
 							ChildCount:                             counts.Children,
 							FlightNumber:                           counts.FlightNumber,
@@ -462,11 +462,11 @@ func CreateOrder(supplier SupplierData,
 		var createISGServiceRequest = ISGServiceRequest{
 			URL:         supplier.APIUrl,
 			AuthKey:     supplier.Password,
-			FirstName:   order.firstName,
-			LastName:    order.lastName,
-			ProductID:   productData.hpCode,
+			FirstName:   order.FirstName,
+			LastName:    order.LastName,
+			ProductID:   productData.HpCode,
 			IsTest:      true,
-			MaxUseCount: order.totalPax,
+			MaxUseCount: order.TotalPax,
 		}
 
 		if additionalData.EnvironmentId == additionalData.ProdEnvID {
