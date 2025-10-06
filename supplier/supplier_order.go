@@ -71,11 +71,11 @@ func CreateOrder(supplier SupplierData,
 	hpCodePaxInfo map[string]PaxInfo,
 	highPassFastTrackOrders map[string]HighPassCrateOrderRequest,
 	index int,
-) (couponCode, errorMessage string) {
-	var (
-		errorResponse = sdk.ResponseError{}
-		response      = sdk.Response{}
-	)
+) (couponCode, errorMessage string, errorResponse sdk.ResponseError) {
+	
+	var response = sdk.Response{}
+	errorResponse = sdk.ResponseError{}
+	
 	switch supplier.Type {
 	case "ppg":
 		expireTime, err := time.Parse(time.RFC3339, supplier.TokenExpiresAt)
