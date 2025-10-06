@@ -50,6 +50,7 @@ type (
 		DFCode            string
 		AACode            string
 		HpCode            string
+		ISGCode           string
 		TimezoneOffset    string
 		DestinationCity   string
 	}
@@ -72,10 +73,10 @@ func CreateOrder(supplier SupplierData,
 	highPassFastTrackOrders map[string]HighPassCrateOrderRequest,
 	index int,
 ) (couponCode, errorMessage string, errorResponse sdk.ResponseError) {
-	
+
 	var response = sdk.Response{}
 	errorResponse = sdk.ResponseError{}
-	
+
 	switch supplier.Type {
 	case "ppg":
 		expireTime, err := time.Parse(time.RFC3339, supplier.TokenExpiresAt)
@@ -464,7 +465,7 @@ func CreateOrder(supplier SupplierData,
 			AuthKey:     supplier.Password,
 			FirstName:   order.FirstName,
 			LastName:    order.LastName,
-			ProductID:   productData.HpCode,
+			ProductID:   productData.ISGCode,
 			IsTest:      true,
 			MaxUseCount: order.TotalPax,
 		}
@@ -486,7 +487,7 @@ func CreateOrder(supplier SupplierData,
 		}
 		couponCode = createISGServiceResponse.Data.Code
 	}
-	return couponCode, errorMessage
+	return couponCode, errorMessage, errorResponse
 }
 
 type (
