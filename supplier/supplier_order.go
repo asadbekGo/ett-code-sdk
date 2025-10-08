@@ -82,7 +82,6 @@ func CreateOrder(supplier SupplierData,
 		expireTime, err := time.Parse(time.RFC3339, supplier.TokenExpiresAt)
 		if err != nil {
 			errorResponse.StatusCode = 422
-			errorResponse.Description = response.Data["description"]
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 			errorMessage = errorResponse.ErrorMessage
@@ -95,7 +94,6 @@ func CreateOrder(supplier SupplierData,
 			login, err = LoginPPG(LoginRequest{LoginName: supplier.Username, Password: supplier.Password, URL: supplier.APIUrl})
 			if err != nil {
 				errorResponse.StatusCode = 422
-				errorResponse.Description = response.Data["description"]
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 				errorMessage = errorResponse.ErrorMessage
@@ -117,10 +115,7 @@ func CreateOrder(supplier SupplierData,
 
 		visitDate, err := time.Parse(time.DateOnly, order.ProductDate)
 		if err != nil {
-			resourceMutex.Lock()
-			defer resourceMutex.Unlock()
 			errorResponse.StatusCode = 500
-			errorResponse.Description = response.Data["description"]
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 			errorMessage = errorResponse.ErrorMessage
@@ -142,10 +137,7 @@ func CreateOrder(supplier SupplierData,
 			LocationShortCode: productData.LocationShortCode,
 		})
 		if err != nil {
-			resourceMutex.Lock()
-			defer resourceMutex.Unlock()
 			errorResponse.StatusCode = 422
-			errorResponse.Description = response.Data["description"]
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 			errorMessage = errorResponse.ErrorMessage
@@ -155,7 +147,6 @@ func CreateOrder(supplier SupplierData,
 		programmIdInt, err := strconv.Atoi(supplier.AiShortCode)
 		if err != nil {
 			errorResponse.StatusCode = 422
-			errorResponse.Description = response.Data["description"]
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 			errorMessage = errorResponse.ErrorMessage
@@ -166,7 +157,6 @@ func CreateOrder(supplier SupplierData,
 			order.ProductDate, err = Add10Minutes(productData.TimezoneOffset)
 			if err != nil {
 				errorResponse.StatusCode = 422
-				errorResponse.Description = response.Data["description"]
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 				errorMessage = errorResponse.ErrorMessage
@@ -189,7 +179,6 @@ func CreateOrder(supplier SupplierData,
 		if err != nil {
 			// ettUcodeApi.SendTelegram("GenerateCouponDF err:" + err.Error())
 			errorResponse.StatusCode = 422
-			errorResponse.Description = response.Data["description"]
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 			errorMessage = errorResponse.ErrorMessage
@@ -200,10 +189,7 @@ func CreateOrder(supplier SupplierData,
 	case "all_airports":
 		expireTime, err := time.Parse(time.RFC3339, supplier.TokenExpiresAt)
 		if err != nil {
-			resourceMutex.Lock()
-			defer resourceMutex.Unlock()
 			errorResponse.StatusCode = 500
-			errorResponse.Description = response.Data["description"]
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 			errorMessage = errorResponse.ErrorMessage
@@ -224,10 +210,7 @@ func CreateOrder(supplier SupplierData,
 				URL:       supplier.APIUrl,
 			})
 			if err != nil {
-				resourceMutex.Lock()
-				defer resourceMutex.Unlock()
 				errorResponse.StatusCode = 422
-				errorResponse.Description = response.Data["description"]
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 				errorMessage = errorResponse.ErrorMessage
@@ -246,8 +229,6 @@ func CreateOrder(supplier SupplierData,
 				DisableFaas:  true,
 			})
 			if err != nil {
-				resourceMutex.Lock()
-				defer resourceMutex.Unlock()
 				errorResponse.StatusCode = 500
 				errorResponse.Description = response.Data["description"]
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
@@ -262,10 +243,7 @@ func CreateOrder(supplier SupplierData,
 		}
 
 		if len(order.PaxType) <= 0 {
-			resourceMutex.Lock()
-			defer resourceMutex.Unlock()
 			errorResponse.StatusCode = 500
-			errorResponse.Description = response.Data["description"]
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 			errorMessage = errorResponse.ErrorMessage
@@ -290,10 +268,7 @@ func CreateOrder(supplier SupplierData,
 			ContactPhone:        supplier.Phone,
 		})
 		if err != nil {
-			resourceMutex.Lock()
-			defer resourceMutex.Unlock()
 			errorResponse.StatusCode = 422
-			errorResponse.Description = response.Data["description"]
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 			errorMessage = errorResponse.ErrorMessage
@@ -306,10 +281,7 @@ func CreateOrder(supplier SupplierData,
 			OrderID: cast.ToInt(createOrderEveryLoungeResponse["id"]),
 		})
 		if err != nil {
-			resourceMutex.Lock()
-			defer resourceMutex.Unlock()
 			errorResponse.StatusCode = 422
-			errorResponse.Description = response.Data["description"]
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 			errorMessage = errorResponse.ErrorMessage
@@ -323,10 +295,7 @@ func CreateOrder(supplier SupplierData,
 			AACode: productData.AACode,
 		})
 		if err != nil {
-			resourceMutex.Lock()
-			defer resourceMutex.Unlock()
 			errorResponse.StatusCode = 422
-			errorResponse.Description = response.Data["description"]
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 			errorMessage = errorResponse.ErrorMessage
@@ -340,7 +309,6 @@ func CreateOrder(supplier SupplierData,
 		expireTime, err := time.Parse(time.RFC3339, supplier.TokenExpiresAt)
 		if err != nil {
 			errorResponse.StatusCode = 422
-			errorResponse.Description = response.Data["description"]
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 			errorMessage = errorResponse.ErrorMessage
@@ -353,7 +321,6 @@ func CreateOrder(supplier SupplierData,
 			login, err = LoginHighPass(LoginRequest{AiShortCode: supplier.AiShortCode, URL: supplier.APIUrl})
 			if err != nil {
 				errorResponse.StatusCode = 422
-				errorResponse.Description = response.Data["description"]
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 				errorMessage = errorResponse.ErrorMessage
@@ -386,7 +353,6 @@ func CreateOrder(supplier SupplierData,
 			err = json.Unmarshal([]byte(flightInfoStr), &flightInfo)
 			if err != nil {
 				errorResponse.StatusCode = 422
-				errorResponse.Description = response.Data["description"]
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 				errorMessage = errorResponse.ErrorMessage
@@ -405,7 +371,6 @@ func CreateOrder(supplier SupplierData,
 				order.ProductDate, err = Add10Minutes(counts.Offset)
 				if err != nil {
 					errorResponse.StatusCode = 422
-					errorResponse.Description = response.Data["description"]
 					errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 					errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 					errorMessage = errorResponse.ErrorMessage
@@ -476,10 +441,7 @@ func CreateOrder(supplier SupplierData,
 
 		createISGServiceResponse, err := CreateISGService(createISGServiceRequest)
 		if err != nil {
-			resourceMutex.Lock()
-			defer resourceMutex.Unlock()
 			errorResponse.StatusCode = 422
-			errorResponse.Description = response.Data["description"]
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 			errorMessage = errorResponse.ErrorMessage
