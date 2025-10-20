@@ -153,12 +153,13 @@ type (
 	}
 
 	ResponseError struct {
-		StatusCode         int
-		Description        interface{}
-		ErrorMessage       string
-		ClientErrorMessage string
-		Errors             []map[string]interface{}
-		ResponseHeader     map[string]interface{}
+		StatusCode           int
+		Description          interface{}
+		ErrorMessage         string
+		ClientErrorMessage   string
+		TelegramErrorMessage string
+		Errors               []map[string]interface{}
+		ResponseHeader       map[string]interface{}
 	}
 
 	DoRequestApi struct {
