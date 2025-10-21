@@ -180,7 +180,7 @@ func CreateOrder(supplier SupplierData,
 			errorResponse.StatusCode = 422
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-			errorResponse.TelegramErrorMessage = "\n*Error log:* "+errorNotification
+			errorResponse.TelegramErrorMessage = "\n<b>Error log:</b> " + errorNotification
 			errorMessage = errorResponse.ErrorMessage
 			return
 		}
