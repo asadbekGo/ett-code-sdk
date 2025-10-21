@@ -164,7 +164,7 @@ func CreateOrder(supplier SupplierData,
 			}
 		}
 
-		couponCodeInt, err := GenerateCouponDF(GenerateCouponDFRequest{
+		couponCodeInt, err, errorNotification := GenerateCouponDF(GenerateCouponDFRequest{
 			URL:                supplier.APIUrl,
 			Username:           supplier.Username,
 			Password:           supplier.Password,
@@ -177,10 +177,10 @@ func CreateOrder(supplier SupplierData,
 			TotalVisit:         order.TotalPax,
 		})
 		if err != nil {
-			// ettUcodeApi.SendTelegram("GenerateCouponDF err:" + err.Error())
 			errorResponse.StatusCode = 422
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
+			errorResponse.TelegramErrorMessage = errorNotification
 			errorMessage = errorResponse.ErrorMessage
 			return
 		}
@@ -840,7 +840,8 @@ func GenerateCouponPPG(couponData CouponInput) (string, error) {
 	return strings.ReplaceAll(coupon.Result.Coupon, "@ppg", ""), nil
 }
 
-func GenerateCouponDF(couponData GenerateCouponDFRequest) (int, error) {
+func GenerateCouponDF(couponData GenerateCouponDFRequest) (int, error, string) {
+	var generalErrorMessage string
 	jsonData, err := json.Marshal(GenerateCouponDFAPIRequest{
 		ProgramId:          couponData.ProgramId,
 		ServiceId:          "21",
@@ -853,12 +854,12 @@ func GenerateCouponDF(couponData GenerateCouponDFRequest) (int, error) {
 		TotalVisit:         couponData.TotalVisit,
 	})
 	if err != nil {
-		return 0, err
+		return 0, err, "Internal Server Error, failed to marshal request"
 	}
 
 	req, err := http.NewRequest("POST", couponData.URL+"/api/get-voucher-outlet", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return 0, err
+		return 0, err, "Internal Server Error, failed to create request"
 	}
 
 	req.Header.Set("key", couponData.Username)
@@ -870,29 +871,34 @@ func GenerateCouponDF(couponData GenerateCouponDFRequest) (int, error) {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return 0, err
+		generalErrorMessage = "Supplier API request failed. Failed to send request:" + err.Error()
+		return 0, errors.New(generalErrorMessage + " Request body: " + string(jsonData)), generalErrorMessage
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return 0, err
+		generalErrorMessage = "Supplier API request failed. Failed to read response body:" + err.Error()
+		return 0, errors.New(generalErrorMessage + " Request body: " + string(jsonData)), generalErrorMessage
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return 0, errors.New(fmt.Sprintln("API request failed with status code:", resp.StatusCode, "body:", string(body), " Request body: "+string(jsonData)))
+		generalErrorMessage = fmt.Sprintln("Supplier API request failed. Invalid status code:", resp.StatusCode) + " Response body: " + string(body)
+		return 0, errors.New(generalErrorMessage + " Request body: " + string(jsonData)), generalErrorMessage
 	}
 
 	var coupon DFGeneratecouponResponse
 	if err := json.Unmarshal(body, &coupon); err != nil {
-		return 0, errors.New(fmt.Sprintln("Error decoding JSON response: "+err.Error(), "body:", string(body), " Request body: "+string(jsonData)))
+		generalErrorMessage = "Supplier API request failed. Error decoding JSON response:" + err.Error() + " Response body:" + string(body)
+		return 0, errors.New(generalErrorMessage + " Request body:" + string(jsonData)), generalErrorMessage
 	}
 
 	if !coupon.Status {
-		return 0, errors.New("Failed to generate coupon body: " + string(body) + " Request body: " + string(jsonData))
+		generalErrorMessage = "Supplier API request failed. Received false coupon status. Response body:" + string(body)
+		return 0, errors.New(generalErrorMessage + " Request body:" + string(jsonData)), generalErrorMessage
 	}
 
-	return coupon.Data.VoucherCode, nil
+	return coupon.Data.VoucherCode, nil, ""
 }
 
 func LoginEveryLounge(req LoginRequest) (LoginResponse, error) {
