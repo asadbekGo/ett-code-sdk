@@ -1202,14 +1202,16 @@ func LoginHighPass(req LoginRequest) (LoginResponse, string, error) {
 	}, "", err
 }
 
-func CreateHighPass(request HighPassCrateOrderRequest) (HighPassCouponData, error) {
+func CreateHighPass(request HighPassCrateOrderRequest) (HighPassCouponData, string, error) {
+	var generalErrorMessage string
 	jsonOrderData, err := json.Marshal(HighPassOrder{
 		PublicAPIKey: request.Order.PublicAPIKey,
 		Orders:       request.Order.Orders,
 	},
 	)
 	if err != nil {
-		return HighPassCouponData{}, err
+		generalErrorMessage = "Internal server error, failed to marshal HighPass Create Order request body: " + err.Error()
+		return HighPassCouponData{}, generalErrorMessage, errors.New(generalErrorMessage)
 	}
 
 	jsonDataBase64 := base64.StdEncoding.EncodeToString(jsonOrderData)
@@ -1221,12 +1223,14 @@ func CreateHighPass(request HighPassCrateOrderRequest) (HighPassCouponData, erro
 		Signature: signatureSha1,
 	})
 	if err != nil {
-		return HighPassCouponData{}, err
+		generalErrorMessage = "Internal server error, failed to marshal HighPass hashed Create Order request body: " + err.Error()
+		return HighPassCouponData{}, generalErrorMessage, errors.New(generalErrorMessage)
 	}
 
 	req, err := http.NewRequest("POST", request.URL+"/api/v1/orders", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return HighPassCouponData{}, err
+		generalErrorMessage = "Internal server error, failed to create HighPass Create Order request: " + err.Error()
+		return HighPassCouponData{}, generalErrorMessage, errors.New(generalErrorMessage)
 	}
 
 	req.Header.Set("Authorization", "Bearer "+request.Token)
@@ -1237,30 +1241,36 @@ func CreateHighPass(request HighPassCrateOrderRequest) (HighPassCouponData, erro
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return HighPassCouponData{}, err
+		generalErrorMessage = "Supplier API request failed, failed to do HighPass Create Order request: " + err.Error()
+		return HighPassCouponData{}, generalErrorMessage, errors.New(generalErrorMessage)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return HighPassCouponData{}, err
+		generalErrorMessage = "Supplier API request failed, failed to read HighPass Create Order response: " + err.Error()
+		return HighPassCouponData{}, generalErrorMessage, errors.New(generalErrorMessage)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return HighPassCouponData{}, errors.New(fmt.Sprintln("API request failed with status code:", resp.StatusCode, "body:", string(body)))
+		generalErrorMessage = "Supplier API request failed, HighPass Create Order request failed with status code: " + fmt.Sprint(resp.StatusCode)
+		return HighPassCouponData{}, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(body))
 	}
 
 	var order OrderResponse
 	if err := json.Unmarshal(body, &order); err != nil {
-		return HighPassCouponData{}, errors.New(fmt.Sprintln("Error decoding JSON response: "+err.Error(), "body:", string(body)))
+		generalErrorMessage = "Supplier API request failed, failed to unmarshal HighPass Create Order response: " + err.Error()
+		return HighPassCouponData{}, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(body))
 	}
 
 	if len(order.Orders) <= 0 {
-		return HighPassCouponData{}, errors.New("No orders found in response body:" + string(body))
+		generalErrorMessage = "Supplier API request failed, no orders found in response body"
+		return HighPassCouponData{}, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(body))
 	}
 
 	if order.Orders[0].ErrorMessage != "" {
-		return HighPassCouponData{}, errors.New(order.Orders[0].ErrorMessage)
+		generalErrorMessage = "Supplier API request failed, HighPass Create Order request failed with error message: " + order.Orders[0].ErrorMessage
+		return HighPassCouponData{}, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(body))
 	}
 
 	response := HighPassCouponData{
@@ -1272,7 +1282,7 @@ func CreateHighPass(request HighPassCrateOrderRequest) (HighPassCouponData, erro
 		response.QrData = order.Orders[0].QRData[0]
 	}
 
-	return response, nil
+	return response, "", nil
 }
 
 func sha1ToBase64(data string) string {
