@@ -42,15 +42,16 @@ type (
 	}
 
 	Argument struct {
-		Ctx               context.Context `json:"context"`
-		AppId             string          `json:"app_id"`
-		TableSlug         string          `json:"table_slug"`
-		Request           Request         `json:"request"`
-		DisableFaas       bool            `json:"disable_faas"`
-		BlockCached       bool            `json:"block_cached"`
-		BlockBuilder      bool            `json:"block_builder"`
-		BlockedLoginTable bool            `json:"blocked_login_table"`
-		IsCacheService    bool            `json:"is_cache_service"`
+		Ctx                 context.Context `json:"context"`
+		AppId               string          `json:"app_id"`
+		TableSlug           string          `json:"table_slug"`
+		Request             Request         `json:"request"`
+		DisableFaas         bool            `json:"disable_faas"`
+		BlockCached         bool            `json:"block_cached"`
+		BlockBuilder        bool            `json:"block_builder"`
+		BlockedLoginTable   bool            `json:"blocked_login_table"`
+		IsCacheService      bool            `json:"is_cache_service"`
+		IsFieldCacheService bool            `json:"is_field_cache_service"`
 	}
 
 	Data struct {
