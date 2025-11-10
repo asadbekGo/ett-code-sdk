@@ -79,6 +79,7 @@ func CreateOrder(supplier SupplierData,
 
 	switch supplier.Type {
 	case "ppg":
+		var errorNotification string
 		expireTime, err := time.Parse(time.RFC3339, supplier.TokenExpiresAt)
 		if err != nil {
 			errorResponse.StatusCode = 422
@@ -91,11 +92,12 @@ func CreateOrder(supplier SupplierData,
 
 		if !time.Now().UTC().Before(expireTime) {
 			var login LoginResponse
-			login, err = LoginPPG(LoginRequest{LoginName: supplier.Username, Password: supplier.Password, URL: supplier.APIUrl})
+			login, errorNotification, err = LoginPPG(LoginRequest{LoginName: supplier.Username, Password: supplier.Password, URL: supplier.APIUrl})
 			if err != nil {
 				errorResponse.StatusCode = 422
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
+				errorResponse.TelegramErrorMessage = "\n<b>Error log:</b> " + errorNotification
 				errorMessage = errorResponse.ErrorMessage
 				return
 			}
@@ -125,7 +127,7 @@ func CreateOrder(supplier SupplierData,
 			return
 		}
 
-		couponCode, err = GenerateCouponPPG(CouponInput{
+		couponCode, errorNotification, err = GenerateCouponPPG(CouponInput{
 			URL:               supplier.APIUrl,
 			Token:             supplier.Token,
 			FirstName:         order.FirstName,
@@ -140,6 +142,7 @@ func CreateOrder(supplier SupplierData,
 			errorResponse.StatusCode = 422
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
+			errorResponse.TelegramErrorMessage = "\n<b>Error log:</b> " + errorNotification
 			errorMessage = errorResponse.ErrorMessage
 			return
 		}
@@ -164,7 +167,7 @@ func CreateOrder(supplier SupplierData,
 			}
 		}
 
-		couponCodeInt, err, errorNotification := GenerateCouponDF(GenerateCouponDFRequest{
+		couponCodeInt, errorNotification, err := GenerateCouponDF(GenerateCouponDFRequest{
 			URL:                supplier.APIUrl,
 			Username:           supplier.Username,
 			Password:           supplier.Password,
@@ -187,6 +190,7 @@ func CreateOrder(supplier SupplierData,
 
 		couponCode = strconv.Itoa(couponCodeInt)
 	case "all_airports":
+		var errorNotification string
 		expireTime, err := time.Parse(time.RFC3339, supplier.TokenExpiresAt)
 		if err != nil {
 			errorResponse.StatusCode = 500
@@ -202,7 +206,7 @@ func CreateOrder(supplier SupplierData,
 
 		if !time.Now().UTC().Before(expireTime) {
 			var login LoginResponse
-			login, err = LoginEveryLounge(LoginRequest{
+			login, errorNotification, err = LoginEveryLounge(LoginRequest{
 				LoginName: supplier.Username,
 				AuthURL:   supplier.AuthUrl,
 				Username:  supplier.Username,
@@ -213,6 +217,7 @@ func CreateOrder(supplier SupplierData,
 				errorResponse.StatusCode = 422
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
+				errorResponse.TelegramErrorMessage = "\n<b>Error log:</b> " + errorNotification
 				errorMessage = errorResponse.ErrorMessage
 				return
 			}
@@ -253,7 +258,7 @@ func CreateOrder(supplier SupplierData,
 			return
 		}
 
-		createOrderEveryLoungeResponse, err := CreateOrderAllAirports(AAGenerateCouponRequest{
+		createOrderEveryLoungeResponse, errorNotification, err := CreateOrderAllAirports(AAGenerateCouponRequest{
 			URL:                 supplier.APIUrl,
 			Token:               supplier.Token,
 			SupplierAiShortCode: supplier.AiShortCode,
@@ -271,11 +276,12 @@ func CreateOrder(supplier SupplierData,
 			errorResponse.StatusCode = 422
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
+			errorResponse.TelegramErrorMessage = "\n<b>Error log:</b> " + errorNotification
 			errorMessage = errorResponse.ErrorMessage
 			return
 		}
 
-		payResponse, err := PayAllAirports(AAGenerateCouponRequest{
+		payResponse, errorNotification, err := PayAllAirports(AAGenerateCouponRequest{
 			URL:     supplier.APIUrl,
 			Token:   supplier.Token,
 			OrderID: cast.ToInt(createOrderEveryLoungeResponse["id"]),
@@ -284,12 +290,13 @@ func CreateOrder(supplier SupplierData,
 			errorResponse.StatusCode = 422
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
+			errorResponse.TelegramErrorMessage = "\n<b>Error log:</b> " + errorNotification
 			errorMessage = errorResponse.ErrorMessage
 			return
 		}
 		couponCode = cast.ToString(payResponse["pnr"])
 
-		resourceResponse, err := GetResourceID(AAGenerateCouponRequest{
+		resourceResponse, errorNotification, err := GetResourceID(AAGenerateCouponRequest{
 			URL:    supplier.APIUrl,
 			Token:  supplier.Token,
 			AACode: productData.AACode,
@@ -298,6 +305,7 @@ func CreateOrder(supplier SupplierData,
 			errorResponse.StatusCode = 422
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
+			errorResponse.TelegramErrorMessage = "\n<b>Error log:</b> " + errorNotification
 			errorMessage = errorResponse.ErrorMessage
 			return
 		}
@@ -306,6 +314,7 @@ func CreateOrder(supplier SupplierData,
 		AAFlightInfo := fmt.Sprintf(`{"orderId": %d, "organizationId": "%s",  "city": {"id": "%s"}, "type": "Departure", "date": "%s", "number": "-"}`, cast.ToInt(createOrderEveryLoungeResponse["id"]), organization["id"], productData.DestinationCity, order.ProductDate)
 		createOrderItemRequest[index]["flight_info"] = AAFlightInfo
 	case "highpass":
+		var errorNotification string
 		expireTime, err := time.Parse(time.RFC3339, supplier.TokenExpiresAt)
 		if err != nil {
 			errorResponse.StatusCode = 422
@@ -318,11 +327,12 @@ func CreateOrder(supplier SupplierData,
 
 		if !time.Now().UTC().Before(expireTime) {
 			var login LoginResponse
-			login, err = LoginHighPass(LoginRequest{AiShortCode: supplier.AiShortCode, URL: supplier.APIUrl})
+			login, errorNotification, err = LoginHighPass(LoginRequest{AiShortCode: supplier.AiShortCode, URL: supplier.APIUrl})
 			if err != nil {
 				errorResponse.StatusCode = 422
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
+				errorResponse.TelegramErrorMessage = "\n<b>Error log:</b> " + errorNotification
 				errorMessage = errorResponse.ErrorMessage
 				return
 			}
@@ -425,6 +435,7 @@ func CreateOrder(supplier SupplierData,
 		}
 		resourceMutex.Unlock()
 	case "isg":
+		var errorNotification string
 		var createISGServiceRequest = ISGServiceRequest{
 			URL:         supplier.APIUrl,
 			AuthKey:     supplier.Password,
@@ -439,11 +450,12 @@ func CreateOrder(supplier SupplierData,
 			createISGServiceRequest.IsTest = false
 		}
 
-		createISGServiceResponse, err := CreateISGService(createISGServiceRequest)
+		createISGServiceResponse, errorNotification, err := CreateISGService(createISGServiceRequest)
 		if err != nil {
 			errorResponse.StatusCode = 422
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
+			errorResponse.TelegramErrorMessage = "\n<b>Error log:</b> " + errorNotification
 			errorMessage = errorResponse.ErrorMessage
 			return
 		}
@@ -742,10 +754,12 @@ type (
 	}
 )
 
-func LoginPPG(req LoginRequest) (LoginResponse, error) {
+func LoginPPG(req LoginRequest) (LoginResponse, string, error) {
+	var generalErrorMessage string
 	jsonData, err := json.Marshal(LoginRequest{LoginName: req.LoginName, Password: req.Password})
 	if err != nil {
-		return LoginResponse{}, err
+		generalErrorMessage = "Internal Server Error, failed to marshal request: " + err.Error()
+		return LoginResponse{}, generalErrorMessage, errors.New(generalErrorMessage)
 	}
 
 	client := &http.Client{
@@ -754,35 +768,41 @@ func LoginPPG(req LoginRequest) (LoginResponse, error) {
 
 	httpReq, err := http.NewRequest("POST", req.URL+"/api/fe/v1/user/login", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return LoginResponse{}, err
+		generalErrorMessage = "Internal Server Error, failed to create login request: " + err.Error()
+		return LoginResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := client.Do(httpReq)
 	if err != nil {
-		return LoginResponse{}, err
+		generalErrorMessage = "Supplier API request failed. Failed to send login request:" + err.Error()
+		return LoginResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " Request body: " + string(jsonData))
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return LoginResponse{}, err
+		generalErrorMessage = "Supplier API request failed. Failed to read login response body:" + err.Error()
+		return LoginResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " Request body: " + string(jsonData))
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return LoginResponse{}, errors.New(fmt.Sprintln("API request failed with status code:", resp.StatusCode, "body:", string(body)))
+		generalErrorMessage = fmt.Sprintln("Supplier API request failed. Invalid status code in login:", resp.StatusCode) + " Response body: " + string(body)
+		return LoginResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(body))
 	}
 
 	var loginResponse LoginResponse
 	err = json.Unmarshal(body, &loginResponse)
 	if err != nil {
-		return LoginResponse{}, errors.New(fmt.Sprintln("Error decoding JSON response: "+err.Error(), "body:", string(body)))
+		generalErrorMessage = "Supplier login API request failed. Error decoding JSON response: " + err.Error() + " Response body: " + string(body)
+		return LoginResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(body))
 	}
 
-	return loginResponse, err
+	return loginResponse, "", err
 }
 
-func GenerateCouponPPG(couponData CouponInput) (string, error) {
+func GenerateCouponPPG(couponData CouponInput) (string, string, error) {
+	var generalErrorMessage string
 	jsonData, err := json.Marshal(GenerateRequest{
 		AIShortCode:       couponData.AishortCode,
 		StartDate:         couponData.StartDate,
@@ -794,12 +814,14 @@ func GenerateCouponPPG(couponData CouponInput) (string, error) {
 		Prefix:            "ETT",
 	})
 	if err != nil {
-		return "", err
+		generalErrorMessage = "Internal Server Error, failed to marshal request: " + err.Error()
+		return "", generalErrorMessage, errors.New(generalErrorMessage)
 	}
 
 	req, err := http.NewRequest("POST", couponData.URL+"/api/master/v1/coupon/generate", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return "", err
+		generalErrorMessage = "Internal Server Error, failed to create request: " + err.Error()
+		return "", generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
 	}
 
 	req.Header.Set("Authorization", "Bearer "+couponData.Token)
@@ -810,37 +832,42 @@ func GenerateCouponPPG(couponData CouponInput) (string, error) {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		generalErrorMessage = "Supplier API request failed. Failed to send coupon generation request: " + err.Error()
+		return "", generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		generalErrorMessage = "Supplier API request failed. Failed to read coupon generation response body: " + err.Error()
+		return "", generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", errors.New(fmt.Sprintln("API request failed with status code:", resp.StatusCode, "body:", string(body)))
+		generalErrorMessage = fmt.Sprintln("Supplier API request failed. Invalid status code in coupon generation:", resp.StatusCode) + " Response body: " + string(body)
+		return "", generalErrorMessage, errors.New(generalErrorMessage + "body:" + string(body))
 	}
 
 	var coupon CouponResponse
 	if err := json.Unmarshal(body, &coupon); err != nil {
-		return "", err
+		generalErrorMessage = "Supplier API request failed. Error decoding JSON response:" + err.Error() + " Response body:" + string(body)
+		return "", generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
 	}
 
 	if coupon.Description == "Could not find the offer in AI" {
-		//lint:ignore ST1005 error strings should not be capitalized
-		return "", errors.New("Product value is not found")
+		generalErrorMessage = "Supplier API request failed. Product value is not found"
+		return "", generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
 	}
 
 	if coupon.Status != 1 {
-		return "", errors.New(coupon.Description)
+		generalErrorMessage = "Supplier API request failed. Invalid Coupon status:" + strconv.Itoa(coupon.Status) + " Response body:" + string(body)
+		return "", generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
 	}
 
-	return strings.ReplaceAll(coupon.Result.Coupon, "@ppg", ""), nil
+	return strings.ReplaceAll(coupon.Result.Coupon, "@ppg", ""), "", nil
 }
 
-func GenerateCouponDF(couponData GenerateCouponDFRequest) (int, error, string) {
+func GenerateCouponDF(couponData GenerateCouponDFRequest) (int, string, error) {
 	var generalErrorMessage string
 	jsonData, err := json.Marshal(GenerateCouponDFAPIRequest{
 		ProgramId:          couponData.ProgramId,
@@ -854,12 +881,14 @@ func GenerateCouponDF(couponData GenerateCouponDFRequest) (int, error, string) {
 		TotalVisit:         couponData.TotalVisit,
 	})
 	if err != nil {
-		return 0, err, "Internal Server Error, failed to marshal request"
+		generalErrorMessage = "Internal Server Error, failed to marshal request: " + err.Error()
+		return 0, generalErrorMessage, errors.New(generalErrorMessage)
 	}
 
 	req, err := http.NewRequest("POST", couponData.URL+"/api/get-voucher-outlet", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return 0, err, "Internal Server Error, failed to create request"
+		generalErrorMessage = "Internal Server Error, failed to create request: " + err.Error()
+		return 0, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
 	}
 
 	req.Header.Set("key", couponData.Username)
@@ -872,37 +901,37 @@ func GenerateCouponDF(couponData GenerateCouponDFRequest) (int, error, string) {
 	resp, err := client.Do(req)
 	if err != nil {
 		generalErrorMessage = "Supplier API request failed. Failed to send request:" + err.Error()
-		return 0, errors.New(generalErrorMessage + " Request body: " + string(jsonData)), generalErrorMessage
+		return 0, generalErrorMessage, errors.New(generalErrorMessage + " Request body: " + string(jsonData))
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		generalErrorMessage = "Supplier API request failed. Failed to read response body:" + err.Error()
-		return 0, errors.New(generalErrorMessage + " Request body: " + string(jsonData)), generalErrorMessage
+		return 0, generalErrorMessage, errors.New(generalErrorMessage + " Request body: " + string(jsonData))
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		generalErrorMessage = fmt.Sprintln("Supplier API request failed. Invalid status code:", resp.StatusCode) + " Response body: " + string(body)
-		return 0, errors.New(generalErrorMessage + " Request body: " + string(jsonData)), generalErrorMessage
+		return 0, generalErrorMessage, errors.New(generalErrorMessage + " Request body: " + string(jsonData))
 	}
 
 	var coupon DFGeneratecouponResponse
 	if err := json.Unmarshal(body, &coupon); err != nil {
 		generalErrorMessage = "Supplier API request failed. Error decoding JSON response:" + err.Error() + " Response body:" + string(body)
-		return 0, errors.New(generalErrorMessage + " Request body:" + string(jsonData)), generalErrorMessage
+		return 0, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
 	}
 
 	if !coupon.Status {
 		generalErrorMessage = "Supplier API request failed. Received false coupon status. Response body:" + string(body)
-		return 0, errors.New(generalErrorMessage + " Request body:" + string(jsonData)), generalErrorMessage
+		return 0, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
 	}
 
-	return coupon.Data.VoucherCode, nil, ""
+	return coupon.Data.VoucherCode, "", nil
 }
 
-func LoginEveryLounge(req LoginRequest) (LoginResponse, error) {
-
+func LoginEveryLounge(req LoginRequest) (LoginResponse, string, error) {
+	var generalErrorMessage string
 	url := req.AuthURL + "/connect/token"
 
 	payload := strings.NewReader(
@@ -917,23 +946,27 @@ func LoginEveryLounge(req LoginRequest) (LoginResponse, error) {
 
 	request, err := http.NewRequest("POST", url, payload)
 	if err != nil {
-		return LoginResponse{}, err
+		generalErrorMessage = "Internal Server Error, failed to create login request: " + err.Error()
+		return LoginResponse{}, generalErrorMessage, errors.New(generalErrorMessage)
 	}
 
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	res, err := client.Do(request)
 	if err != nil {
-		return LoginResponse{}, err
+		generalErrorMessage = "Supplier API request failed. Failed to send login request: " + err.Error()
+		return LoginResponse{}, generalErrorMessage, errors.New(generalErrorMessage)
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		return LoginResponse{}, errors.New("API request failed with status code: " + res.Status)
+		generalErrorMessage = "Supplier API request failed. Invalid status code in login: " + strconv.Itoa(res.StatusCode)
+		return LoginResponse{}, generalErrorMessage, errors.New(generalErrorMessage)
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return LoginResponse{}, err
+		generalErrorMessage = "Supplier API request failed. Failed to read login response body: " + err.Error()
+		return LoginResponse{}, generalErrorMessage, errors.New(generalErrorMessage)
 	}
 
 	var loginResponse AALoginResponse
@@ -942,11 +975,11 @@ func LoginEveryLounge(req LoginRequest) (LoginResponse, error) {
 	return LoginResponse{
 		Token:   loginResponse.AccessToken,
 		Expires: time.Now().Add(time.Duration(loginResponse.Expires) * time.Second).Format(time.RFC3339),
-	}, err
+	}, "", err
 }
 
-func CreateOrderAllAirports(couponData AAGenerateCouponRequest) (map[string]interface{}, error) {
-
+func CreateOrderAllAirports(couponData AAGenerateCouponRequest) (map[string]interface{}, string, error) {
+	var generalErrorMessage string
 	paxDateOfBirth := time.Now().AddDate(-20, 0, 0).Format("2006-01-02T15:04:05")
 
 	jsonData, err := json.Marshal(AAGenerateRequest{
@@ -983,12 +1016,14 @@ func CreateOrderAllAirports(couponData AAGenerateCouponRequest) (map[string]inte
 		ContactPhone: couponData.ContactPhone,
 	})
 	if err != nil {
-		return nil, err
+		generalErrorMessage = "Internal Server Error, failed to Marshal Creater Order request body: " + err.Error()
+		return nil, generalErrorMessage, errors.New(generalErrorMessage)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, couponData.URL+"/api/v0/orders", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return nil, err
+		generalErrorMessage = "Internal Server Error, failed to create Creater Order request: " + err.Error()
+		return nil, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
 	}
 
 	req.Header.Set("Authorization", "Bearer "+couponData.Token)
@@ -997,31 +1032,36 @@ func CreateOrderAllAirports(couponData AAGenerateCouponRequest) (map[string]inte
 	client := &http.Client{Timeout: time.Second * 10}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		generalErrorMessage = "Supplier API request failed, failed to do Creater Order request: " + err.Error()
+		return nil, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		generalErrorMessage = "Supplier API request failed, failed to read Creater Order response: " + err.Error()
+		return nil, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, errors.New(fmt.Sprintln("API request failed with status code:", resp.StatusCode, "body:", string(body)))
+		generalErrorMessage = fmt.Sprintln("Supplier API request failed with status code:", resp.StatusCode, "response body:", string(body))
+		return nil, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
 	}
 
 	var response map[string]interface{}
 	if err := json.Unmarshal(body, &response); err != nil {
-		return nil, err
+		generalErrorMessage = fmt.Sprintln("Supplier API request failed. Failed to Unmarshal response body, error: ", err.Error())
+		return nil, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
 	}
 
-	return response, nil
+	return response, "", nil
 }
 
-func PayAllAirports(request AAGenerateCouponRequest) (map[string]interface{}, error) {
-
+func PayAllAirports(request AAGenerateCouponRequest) (map[string]interface{}, string, error) {
+	var generalErrorMessage string
 	if request.OrderID == 0 {
-		return nil, errors.New("ResourceID and OrderID are required")
+		generalErrorMessage = "Supplier API request failed, ResourceID and OrderID are required"
+		return nil, generalErrorMessage, errors.New(generalErrorMessage)
 	}
 
 	var payload = `{
@@ -1032,7 +1072,8 @@ func PayAllAirports(request AAGenerateCouponRequest) (map[string]interface{}, er
 	var url = fmt.Sprintf("%s/api/v0/orders/%d/pay", request.URL, request.OrderID)
 	req, err := http.NewRequest(http.MethodPatch, url, strings.NewReader(payload))
 	if err != nil {
-		return nil, errors.New("Error creating request: " + err.Error())
+		generalErrorMessage = "Internal Server Error, failed to create Pay Order request: " + err.Error()
+		return nil, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + fmt.Sprintf("%d", request.OrderID))
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -1041,38 +1082,44 @@ func PayAllAirports(request AAGenerateCouponRequest) (map[string]interface{}, er
 	client := &http.Client{Timeout: time.Second * 10}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, errors.New("Error sending request: " + err.Error())
+		generalErrorMessage = "Supplier API request failed, failed to do Pay Order request: " + err.Error()
+		return nil, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + fmt.Sprintf("%d", request.OrderID))
 	}
 	defer resp.Body.Close()
 
 	var response map[string]interface{}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		generalErrorMessage = "Supplier API request failed, failed to read Pay Order response: " + err.Error()
+		return nil, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + fmt.Sprintf("%d", request.OrderID))
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, errors.New("API request failed with status code: " + string(body))
+		generalErrorMessage = fmt.Sprintln("Supplier API request failed with status code:", resp.StatusCode, "response body:", string(body))
+		return nil, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + fmt.Sprintf("%d", request.OrderID))
 	}
 
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		return nil, errors.New("Error decoding JSON response: " + err.Error())
+		generalErrorMessage = "Supplier API request failed. Failed to Unmarshal response body, error: " + err.Error()
+		return nil, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + fmt.Sprintf("%d", request.OrderID))
 	}
 
-	return response, nil
+	return response, "", nil
 }
 
-func GetResourceID(request AAGenerateCouponRequest) (map[string]interface{}, error) {
-
+func GetResourceID(request AAGenerateCouponRequest) (map[string]interface{}, string, error) {
+	var generalErrorMessage string
 	if request.AACode == "" {
-		return nil, errors.New("ResourceID and AA Code are required")
+		generalErrorMessage = "Supplier API request failed, ResourceID and AA Code are required"
+		return nil, generalErrorMessage, errors.New(generalErrorMessage)
 	}
 
 	var url = fmt.Sprintf("%s/api/v0/resources/%s", request.URL, request.AACode)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return nil, errors.New("Error creating request: " + err.Error())
+		generalErrorMessage = "Internal Server Error, failed to create Get ResourceID request: " + err.Error()
+		return nil, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + fmt.Sprintf("%s", request.AACode))
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -1081,30 +1128,34 @@ func GetResourceID(request AAGenerateCouponRequest) (map[string]interface{}, err
 	client := &http.Client{Timeout: time.Second * 10}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, errors.New("Error sending request: " + err.Error())
+		generalErrorMessage = "Supplier API request failed, failed to do Get ResourceID request: " + err.Error()
+		return nil, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + fmt.Sprintf("%s", request.AACode))
 	}
 	defer resp.Body.Close()
 
 	var response map[string]interface{}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		generalErrorMessage = "Supplier API request failed, failed to read Get ResourceID response: " + err.Error()
+		return nil, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + fmt.Sprintf("%s", request.AACode))
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, errors.New("API request failed with status code: " + string(body))
+		generalErrorMessage = fmt.Sprintln("Supplier API request failed with status code:", resp.StatusCode, "response body:", string(body))
+		return nil, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + fmt.Sprintf("%s", request.AACode))
 	}
 
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		return nil, errors.New("Error decoding JSON response: " + err.Error())
+		generalErrorMessage = "Supplier API request failed. Failed to Unmarshal response body, error: " + err.Error()
+		return nil, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + fmt.Sprintf("%s", request.AACode))
 	}
 
-	return response, nil
+	return response, "", nil
 }
 
-func LoginHighPass(req LoginRequest) (LoginResponse, error) {
-
+func LoginHighPass(req LoginRequest) (LoginResponse, string, error) {
+	var generalErrorMessage string
 	url := req.URL + "/api/v1/token"
 
 	payload := strings.NewReader(
@@ -1118,24 +1169,28 @@ func LoginHighPass(req LoginRequest) (LoginResponse, error) {
 	request, err := http.NewRequest("POST", url, payload)
 
 	if err != nil {
-		return LoginResponse{}, err
+		generalErrorMessage = "Internal Server Error. Failed to create Login request: " + err.Error()
+		return LoginResponse{}, "", errors.New(generalErrorMessage + req.AiShortCode)
 	}
 
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	res, err := client.Do(request)
 	if err != nil {
-		return LoginResponse{}, err
+		generalErrorMessage = "Supplier API request failed. Failed to send Login request: " + err.Error()
+		return LoginResponse{}, "", errors.New(generalErrorMessage + " Request body:" + fmt.Sprintf("%s", req.AiShortCode))
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		return LoginResponse{}, errors.New("API request failed with status code: " + res.Status)
+		generalErrorMessage = "Supplier API request failed. Login request failed with status code: " + res.Status
+		return LoginResponse{}, "", errors.New(generalErrorMessage + " Request body:" + fmt.Sprintf("%s", req.AiShortCode))
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return LoginResponse{}, err
+		generalErrorMessage = "Supplier API request failed. Failed to read Login response body: " + err.Error()
+		return LoginResponse{}, "", errors.New(generalErrorMessage + " Request body:" + fmt.Sprintf("%s", req.AiShortCode))
 	}
 
 	var loginResponse HighPassLoginResponse
@@ -1144,7 +1199,7 @@ func LoginHighPass(req LoginRequest) (LoginResponse, error) {
 	return LoginResponse{
 		Token:   loginResponse.AccessToken,
 		Expires: time.Now().Add(time.Duration(loginResponse.ExpiresIn) * time.Second).Format(time.RFC3339),
-	}, err
+	}, "", err
 }
 
 func CreateHighPass(request HighPassCrateOrderRequest) (HighPassCouponData, error) {
@@ -1225,8 +1280,8 @@ func sha1ToBase64(data string) string {
 	return base64.StdEncoding.EncodeToString(hash[:]) // Convert to base64 string
 }
 
-func CreateISGService(reqData ISGServiceRequest) (ISGServiceResponse, error) {
-
+func CreateISGService(reqData ISGServiceRequest) (ISGServiceResponse, string, error) {
+	var generalErrorMessage string
 	params := url.Values{}
 	params.Set("authKey", reqData.AuthKey)
 	params.Set("firstname", reqData.FirstName)
@@ -1240,35 +1295,41 @@ func CreateISGService(reqData ISGServiceRequest) (ISGServiceResponse, error) {
 	var fullURL = reqData.URL + "/premiumservices/create?" + params.Encode()
 	req, err := http.NewRequest(http.MethodPost, fullURL, nil)
 	if err != nil {
-		return ISGServiceResponse{}, err
+		generalErrorMessage = "Internal Server Error, failed to create ISG Service request: " + err.Error()
+		return ISGServiceResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL)
 	}
 
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return ISGServiceResponse{}, err
+		generalErrorMessage = "Supplier API request failed, failed to do ISG Service request: " + err.Error()
+		return ISGServiceResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return ISGServiceResponse{}, err
+		generalErrorMessage = "Supplier API request failed, failed to read ISG Service response: " + err.Error()
+		return ISGServiceResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return ISGServiceResponse{}, errors.New(fmt.Sprintln("API request failed with status code:", resp.StatusCode, "URL:", fullURL, "body:", string(body)))
+		generalErrorMessage = "Supplier API request failed, unexpected status code: " + fmt.Sprint(resp.StatusCode)
+		return ISGServiceResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL)
 	}
 
 	var result ISGServiceResponse
 	if err := json.Unmarshal(body, &result); err != nil {
-		return ISGServiceResponse{}, errors.New(fmt.Sprintln("Failed to unmarshal response error:", err, "URL:", fullURL, "body:", string(body)))
+		generalErrorMessage = "Supplier API request failed, failed to unmarshal ISG Service response: " + err.Error()
+		return ISGServiceResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL)
 	}
 
 	if result.Error {
-		return result, errors.New("ISG Service Error: " + result.ErrorMessage + " URL: " + fullURL + " body: " + string(body))
+		generalErrorMessage = "Supplier API request failed, ISG Service Error: " + result.ErrorMessage
+		return result, generalErrorMessage, errors.New(generalErrorMessage + " URL: " + fullURL + " body: " + string(body))
 	}
 
-	return result, nil
+	return result, "", nil
 }
 
 func IsCurrentDate(serviceDate, timezoneOffset string) bool {
