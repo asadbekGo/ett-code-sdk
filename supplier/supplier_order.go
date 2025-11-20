@@ -681,6 +681,7 @@ type (
 		NeedStroller             bool
 		NeedsWheelchair          bool
 		FlightRoute              string
+		Phone                    string
 	}
 	HighPassCouponData struct {
 		CouponCode string `json:"coupon_code"`
