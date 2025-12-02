@@ -5,13 +5,13 @@ import (
 	"context"
 	"crypto/aes"
 	"crypto/cipher"
-	crypt_rand "crypto/rand"
+	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
 	"math"
-	"math/rand"
+	mathrand "math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -123,9 +123,21 @@ func GenerateRandomString(length int, cmd int) string {
 	}
 
 	b := make([]byte, length)
-	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	randomBytes := make([]byte, length)
+
+	// 1) Main — crypto/rand
+	if _, err := rand.Read(randomBytes); err == nil {
+		for i := 0; i < length; i++ {
+			b[i] = letterBytes[int(randomBytes[i])%len(letterBytes)]
+		}
+		return string(b)
 	}
+
+	// 2) Fallback — math/rand
+	for i := range length {
+		b[i] = letterBytes[mathrand.Intn(len(letterBytes))]
+	}
+
 	return string(b)
 }
 
@@ -208,7 +220,7 @@ func Encrypt(secretKey, plaintext string) (string, error) {
 	// We need a 12-byte nonce for GCM (modifiable if you use cipher.NewGCMWithNonceSize())
 	// A nonce should always be randomly generated for every encryption.
 	nonce := make([]byte, gcm.NonceSize())
-	_, err = crypt_rand.Read(nonce)
+	_, err = rand.Read(nonce)
 	if err != nil {
 		return "", err
 	}
