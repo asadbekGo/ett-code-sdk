@@ -52,6 +52,7 @@ type (
 		BlockedLoginTable   bool            `json:"blocked_login_table"`
 		IsCacheService      bool            `json:"is_cache_service"`
 		IsFieldCacheService bool            `json:"is_field_cache_service"`
+		IgnoreDuplicateGuid bool            `json:"ignore_duplicate_guid"`
 	}
 
 	Data struct {

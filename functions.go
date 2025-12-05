@@ -95,6 +95,10 @@ func (o *ObjectFunction) MultipleUpdate(arg *Argument) (ClientApiMultipleUpdateR
 		appId = arg.AppId
 	}
 
+	if arg.IgnoreDuplicateGuid {
+		url += "&ignore_duplicate_guid=true"
+	}
+
 	multipleUpdateObjectsResponseInByte, err := DoRequest(arg.Ctx, url, http.MethodPut, arg.Request, appId, nil)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(multipleUpdateObjectsResponseInByte), "message": "Error while multiple updating objects", "error": err.Error()}
