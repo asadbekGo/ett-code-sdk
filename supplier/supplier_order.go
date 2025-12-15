@@ -765,7 +765,7 @@ func LoginPPG(req LoginRequest) (LoginResponse, string, error) {
 	}
 
 	client := &http.Client{
-		Timeout: 40 * time.Second,
+		Timeout: 60 * time.Second,
 	}
 
 	httpReq, err := http.NewRequest("POST", req.URL+"/api/fe/v1/user/login", bytes.NewBuffer(jsonData))
@@ -830,7 +830,7 @@ func GenerateCouponPPG(couponData CouponInput) (string, string, error) {
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{
-		Timeout: 40 * time.Second,
+		Timeout: 60 * time.Second,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -898,7 +898,7 @@ func GenerateCouponDF(couponData GenerateCouponDFRequest) (int, string, error) {
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{
-		Timeout: 40 * time.Second,
+		Timeout: 60 * time.Second,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -1166,7 +1166,7 @@ func LoginHighPass(req LoginRequest) (LoginResponse, string, error) {
 			"&api_key=" + req.AiShortCode)
 
 	client := &http.Client{
-		Timeout: 40 * time.Second,
+		Timeout: 60 * time.Second,
 	}
 	request, err := http.NewRequest("POST", url, payload)
 
@@ -1239,7 +1239,7 @@ func CreateHighPass(request HighPassCrateOrderRequest) (HighPassCouponData, stri
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{
-		Timeout: 40 * time.Second,
+		Timeout: 60 * time.Second,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
