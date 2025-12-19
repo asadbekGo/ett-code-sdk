@@ -898,7 +898,7 @@ func GenerateCouponDF(couponData GenerateCouponDFRequest) (int, string, error) {
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{
-		Timeout: 60 * time.Second,
+		Timeout: 100 * time.Second,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
