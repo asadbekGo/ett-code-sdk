@@ -171,5 +171,6 @@ type (
 		AppId       string                 `json:"app_id"`
 		Headers     map[string]interface{} `json:"headers"`
 		RequestBody interface{}            `json:"request_body"`
+		IsLogPrint  bool                   `json:"is_log_print"`
 	}
 )
