@@ -829,9 +829,7 @@ func GenerateCouponPPG(couponData CouponInput) (string, string, error) {
 	req.Header.Set("Authorization", "Bearer "+couponData.Token)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{
-		Timeout: 60 * time.Second,
-	}
+	client := &http.Client{Timeout: 60 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		generalErrorMessage = "Supplier API request failed. Failed to send coupon generation request: " + err.Error()
@@ -897,9 +895,7 @@ func GenerateCouponDF(couponData GenerateCouponDFRequest) (int, string, error) {
 	req.Header.Set("secret", couponData.Password)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{
-		Timeout: 100 * time.Second,
-	}
+	client := &http.Client{Timeout: 100 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		generalErrorMessage = "Supplier API request failed. Failed to send request:" + err.Error()
@@ -1031,7 +1027,7 @@ func CreateOrderAllAirports(couponData AAGenerateCouponRequest) (map[string]inte
 	req.Header.Set("Authorization", "Bearer "+couponData.Token)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: time.Second * 10}
+	client := &http.Client{Timeout: 60 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		generalErrorMessage = "Supplier API request failed, failed to do Creater Order request: " + err.Error()
@@ -1081,7 +1077,7 @@ func PayAllAirports(request AAGenerateCouponRequest) (map[string]interface{}, st
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+request.Token)
 
-	client := &http.Client{Timeout: time.Second * 10}
+	client := &http.Client{Timeout: 60 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		generalErrorMessage = "Supplier API request failed, failed to do Pay Order request: " + err.Error()
@@ -1127,7 +1123,7 @@ func GetResourceID(request AAGenerateCouponRequest) (map[string]interface{}, str
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+request.Token)
 
-	client := &http.Client{Timeout: time.Second * 10}
+	client := &http.Client{Timeout: 60 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		generalErrorMessage = "Supplier API request failed, failed to do Get ResourceID request: " + err.Error()
@@ -1238,9 +1234,7 @@ func CreateHighPass(request HighPassCrateOrderRequest) (HighPassCouponData, stri
 	req.Header.Set("Authorization", "Bearer "+request.Token)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{
-		Timeout: 60 * time.Second,
-	}
+	client := &http.Client{Timeout: 60 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		generalErrorMessage = "Supplier API request failed, failed to do HighPass Create Order request: " + err.Error()
@@ -1311,7 +1305,7 @@ func CreateISGService(reqData ISGServiceRequest) (ISGServiceResponse, string, er
 		return ISGServiceResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL)
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: 60 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		generalErrorMessage = "Supplier API request failed, failed to do ISG Service request: " + err.Error()
