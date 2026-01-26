@@ -160,6 +160,7 @@ type (
 		ErrorMessage         string
 		ClientErrorMessage   string
 		TelegramErrorMessage string
+		TelegramErrorFile    string
 		Errors               []map[string]interface{}
 		ResponseHeader       map[string]interface{}
 	}
