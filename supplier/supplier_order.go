@@ -97,7 +97,7 @@ func CreateOrder(supplier SupplierData,
 				errorResponse.StatusCode = 422
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-				errorResponse.TelegramErrorMessage = "\n<b>Error log:</b> " + errorNotification
+				errorResponse.TelegramErrorFile = errorNotification
 				errorMessage = errorResponse.ErrorMessage
 				return
 			}
@@ -142,7 +142,7 @@ func CreateOrder(supplier SupplierData,
 			errorResponse.StatusCode = 422
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-			errorResponse.TelegramErrorMessage = "\n<b>Error log:</b> " + errorNotification
+			errorResponse.TelegramErrorFile = errorNotification
 			errorMessage = errorResponse.ErrorMessage
 			return
 		}
@@ -183,7 +183,7 @@ func CreateOrder(supplier SupplierData,
 			errorResponse.StatusCode = 422
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-			errorResponse.TelegramErrorMessage = "\n<b>Error log:</b> " + errorNotification
+			errorResponse.TelegramErrorFile = errorNotification
 			errorMessage = errorResponse.ErrorMessage
 			return
 		}
@@ -217,7 +217,7 @@ func CreateOrder(supplier SupplierData,
 				errorResponse.StatusCode = 422
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-				errorResponse.TelegramErrorMessage = "\n<b>Error log:</b> " + errorNotification
+				errorResponse.TelegramErrorFile = errorNotification
 				errorMessage = errorResponse.ErrorMessage
 				return
 			}
@@ -276,7 +276,7 @@ func CreateOrder(supplier SupplierData,
 			errorResponse.StatusCode = 422
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-			errorResponse.TelegramErrorMessage = "\n<b>Error log:</b> " + errorNotification
+			errorResponse.TelegramErrorFile = errorNotification
 			errorMessage = errorResponse.ErrorMessage
 			return
 		}
@@ -290,7 +290,7 @@ func CreateOrder(supplier SupplierData,
 			errorResponse.StatusCode = 422
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-			errorResponse.TelegramErrorMessage = "\n<b>Error log:</b> " + errorNotification
+			errorResponse.TelegramErrorFile = errorNotification
 			errorMessage = errorResponse.ErrorMessage
 			return
 		}
@@ -305,7 +305,7 @@ func CreateOrder(supplier SupplierData,
 			errorResponse.StatusCode = 422
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-			errorResponse.TelegramErrorMessage = "\n<b>Error log:</b> " + errorNotification
+			errorResponse.TelegramErrorFile = errorNotification
 			errorMessage = errorResponse.ErrorMessage
 			return
 		}
@@ -332,7 +332,7 @@ func CreateOrder(supplier SupplierData,
 				errorResponse.StatusCode = 422
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-				errorResponse.TelegramErrorMessage = "\n<b>Error log:</b> " + errorNotification
+				errorResponse.TelegramErrorFile = errorNotification
 				errorMessage = errorResponse.ErrorMessage
 				return
 			}
@@ -455,7 +455,7 @@ func CreateOrder(supplier SupplierData,
 			errorResponse.StatusCode = 422
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-			errorResponse.TelegramErrorMessage = "\n<b>Error log:</b> " + errorNotification
+			errorResponse.TelegramErrorFile = errorNotification
 			errorMessage = errorResponse.ErrorMessage
 			return
 		}
