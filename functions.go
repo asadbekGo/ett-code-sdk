@@ -29,7 +29,7 @@ func (o *ObjectFunction) CreateObject(arg *Argument) (Datas, Response, error) {
 	var (
 		response      = Response{Status: "done"}
 		createdObject = Datas{}
-		url           = fmt.Sprintf("%s/v1/object/%s?from-ofs=%t&block_builder=%t&blocked_login_table=%t", o.Cfg.BaseURL, arg.TableSlug, arg.DisableFaas, arg.BlockBuilder, arg.BlockedLoginTable)
+		url           = fmt.Sprintf("%s/v1/object/%s?from-ofs=%t&block_builder=%t&blocked_login_table=%t&block_cache_clear=%t", o.Cfg.BaseURL, arg.TableSlug, arg.DisableFaas, arg.BlockBuilder, arg.BlockedLoginTable, arg.BlockCacheClear)
 	)
 
 	var appId = o.Cfg.AppId
@@ -58,7 +58,7 @@ func (o *ObjectFunction) UpdateObject(arg *Argument) (ClientApiUpdateResponse, R
 	var (
 		response     = Response{Status: "done"}
 		updateObject = ClientApiUpdateResponse{}
-		url          = fmt.Sprintf("%s/v1/object/%s?from-ofs=%t&block_builder=%t", o.Cfg.BaseURL, arg.TableSlug, arg.DisableFaas, arg.BlockBuilder)
+		url          = fmt.Sprintf("%s/v1/object/%s?from-ofs=%t&block_builder=%t&block_cache_clear=%t", o.Cfg.BaseURL, arg.TableSlug, arg.DisableFaas, arg.BlockBuilder, arg.BlockCacheClear)
 	)
 
 	var appId = o.Cfg.AppId
@@ -87,7 +87,7 @@ func (o *ObjectFunction) MultipleUpdate(arg *Argument) (ClientApiMultipleUpdateR
 	var (
 		response             = Response{Status: "done"}
 		multipleUpdateObject = ClientApiMultipleUpdateResponse{}
-		url                  = fmt.Sprintf("%s/v1/object/multiple-update/%s?from-ofs=%t&block_builder=%t", o.Cfg.BaseURL, arg.TableSlug, arg.DisableFaas, arg.BlockBuilder)
+		url                  = fmt.Sprintf("%s/v1/object/multiple-update/%s?from-ofs=%t&block_builder=%t&block_cache_clear=%t", o.Cfg.BaseURL, arg.TableSlug, arg.DisableFaas, arg.BlockBuilder, arg.BlockCacheClear)
 	)
 
 	var appId = o.Cfg.AppId
