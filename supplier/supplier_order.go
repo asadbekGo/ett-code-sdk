@@ -195,7 +195,7 @@ func CreateOrder(
 			return
 		}
 
-		createOrderResponse.CouponCode = strconv.Itoa(couponResponse.Data.VoucherCode)
+		createOrderResponse.CouponCode = cast.ToString(couponResponse.Data.VoucherCode)
 		createOrderResponse.LogoUrl = couponResponse.Data.LogoUrl
 		createOrderResponse.LogoUrl2 = couponResponse.Data.LogoUrl2
 	case "all_airports":
@@ -557,7 +557,7 @@ type (
 		Message string `json:"message"`
 		Code    int    `json:"code"`
 		Data    struct {
-			VoucherCode       int    `json:"voucher_code"`
+			VoucherCode       any    `json:"voucher_code"`
 			EcertURL          string `json:"ecert_url"`
 			RequestIdentifier string `json:"request_identifier"`
 			BillingPriceGroup string `json:"billing_price_group"`
