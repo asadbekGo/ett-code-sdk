@@ -59,6 +59,13 @@ type (
 		EnvironmentId string
 		ProdEnvID     string
 	}
+
+	CreateOrderResponse struct {
+		CouponCode   string
+		LogoUrl      string
+		LogoUrl2     string
+		ErrorMessage string
+	}
 )
 
 func CreateOrder(
@@ -74,10 +81,7 @@ func CreateOrder(
 	hpCodePaxInfo map[string]PaxInfo,
 	highPassFastTrackOrders map[string]HighPassCrateOrderRequest,
 	index int,
-) (couponCode, errorMessage string, errorResponse sdk.ResponseError) {
-
-	var response = sdk.Response{}
-	errorResponse = sdk.ResponseError{}
+) (createOrderResponse CreateOrderResponse, errorResponse sdk.ResponseError) {
 
 	switch supplier.Type {
 	case "ppg":
@@ -87,7 +91,7 @@ func CreateOrder(
 			errorResponse.StatusCode = 422
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-			errorMessage = errorResponse.ErrorMessage
+			createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 			return
 		}
 		expireTime = expireTime.Add(-time.Hour * 1)
@@ -100,18 +104,18 @@ func CreateOrder(
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 				errorResponse.TelegramErrorFile = errorNotification
-				errorMessage = errorResponse.ErrorMessage
+				createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 				return
 			}
 
 			var updateSupplierRequest = sdk.Request{Data: map[string]interface{}{"guid": supplier.Guid, "token": login.Token, "token_expire_at": login.Expires}}
-			_, response, err = ettUcodeApi.UpdateObject(&sdk.Argument{Ctx: context.Background(), TableSlug: "suppliers", Request: updateSupplierRequest, BlockBuilder: true, DisableFaas: true})
+			_, response, err := ettUcodeApi.UpdateObject(&sdk.Argument{Ctx: context.Background(), TableSlug: "suppliers", Request: updateSupplierRequest, BlockBuilder: true, DisableFaas: true})
 			if err != nil {
 				errorResponse.StatusCode = 422
 				errorResponse.Description = response.Data["description"]
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-				errorMessage = errorResponse.ErrorMessage
+				createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 				return
 			}
 			supplier.Token = login.Token
@@ -122,14 +126,14 @@ func CreateOrder(
 			errorResponse.StatusCode = 500
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-			errorMessage = errorResponse.ErrorMessage
+			createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 			if additionalData.EnvironmentId == additionalData.ProdEnvID {
 				SendtoETT("[Agent API Create Order: Parse Visit Date] [🔴 Down] Request failed with status code 500")
 			}
 			return
 		}
 
-		couponCode, errorNotification, err = GenerateCouponPPG(CouponInput{
+		createOrderResponse.CouponCode, errorNotification, err = GenerateCouponPPG(CouponInput{
 			URL:               supplier.APIUrl,
 			Token:             supplier.Token,
 			FirstName:         order.FirstName,
@@ -145,7 +149,7 @@ func CreateOrder(
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 			errorResponse.TelegramErrorFile = errorNotification
-			errorMessage = errorResponse.ErrorMessage
+			createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 			return
 		}
 	case "dreamfolks":
@@ -154,7 +158,7 @@ func CreateOrder(
 			errorResponse.StatusCode = 422
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-			errorMessage = errorResponse.ErrorMessage
+			createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 			return
 		}
 
@@ -164,12 +168,12 @@ func CreateOrder(
 				errorResponse.StatusCode = 422
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-				errorMessage = errorResponse.ErrorMessage
+				createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 				return
 			}
 		}
 
-		couponCodeInt, errorNotification, err := GenerateCouponDF(GenerateCouponDFRequest{
+		couponResponse, errorNotification, err := GenerateCouponDF(GenerateCouponDFRequest{
 			URL:                supplier.APIUrl,
 			ApiVersion:         supplier.ApiVersion,
 			Username:           supplier.Username,
@@ -187,11 +191,13 @@ func CreateOrder(
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 			errorResponse.TelegramErrorFile = errorNotification
-			errorMessage = errorResponse.ErrorMessage
+			createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 			return
 		}
 
-		couponCode = strconv.Itoa(couponCodeInt)
+		createOrderResponse.CouponCode = strconv.Itoa(couponResponse.Data.VoucherCode)
+		createOrderResponse.LogoUrl = couponResponse.Data.LogoUrl
+		createOrderResponse.LogoUrl2 = couponResponse.Data.LogoUrl2
 	case "all_airports":
 		var errorNotification string
 		expireTime, err := time.Parse(time.RFC3339, supplier.TokenExpiresAt)
@@ -199,7 +205,7 @@ func CreateOrder(
 			errorResponse.StatusCode = 500
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-			errorMessage = errorResponse.ErrorMessage
+			createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 			if additionalData.EnvironmentId == additionalData.ProdEnvID {
 				SendtoETT("[Create Order - Every Lounge Token Expire Time Parsing] [🔴 Down] Request failed with status code 500")
 			}
@@ -221,27 +227,18 @@ func CreateOrder(
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 				errorResponse.TelegramErrorFile = errorNotification
-				errorMessage = errorResponse.ErrorMessage
+				createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 				return
 			}
 
-			var updateSupplierRequest = sdk.Request{Data: map[string]interface{}{
-				"guid":            supplier.Guid,
-				"token":           login.Token,
-				"token_expire_at": login.Expires,
-			}}
-			_, response, err = ettUcodeApi.UpdateObject(&sdk.Argument{
-				TableSlug:    "suppliers",
-				Request:      updateSupplierRequest,
-				BlockBuilder: true,
-				DisableFaas:  true,
-			})
+			var updateSupplierRequest = sdk.Request{Data: map[string]interface{}{"guid": supplier.Guid, "token": login.Token, "token_expire_at": login.Expires}}
+			_, response, err := ettUcodeApi.UpdateObject(&sdk.Argument{TableSlug: "suppliers", Request: updateSupplierRequest, BlockBuilder: true, DisableFaas: true})
 			if err != nil {
 				errorResponse.StatusCode = 500
 				errorResponse.Description = response.Data["description"]
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-				errorMessage = errorResponse.ErrorMessage
+				createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 				if additionalData.EnvironmentId == additionalData.ProdEnvID {
 					SendtoETT("[Create Order - Every Lounge Token Update] [🔴 Down] Request failed with status code 500")
 				}
@@ -254,7 +251,7 @@ func CreateOrder(
 			errorResponse.StatusCode = 500
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-			errorMessage = errorResponse.ErrorMessage
+			createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 			if additionalData.EnvironmentId == additionalData.ProdEnvID {
 				SendtoETT("[Create Order - Every Lounge Pax Type] [🔴 Down] Request failed with status code 500")
 			}
@@ -280,7 +277,7 @@ func CreateOrder(
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 			errorResponse.TelegramErrorFile = errorNotification
-			errorMessage = errorResponse.ErrorMessage
+			createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 			return
 		}
 
@@ -294,10 +291,10 @@ func CreateOrder(
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 			errorResponse.TelegramErrorFile = errorNotification
-			errorMessage = errorResponse.ErrorMessage
+			createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 			return
 		}
-		couponCode = cast.ToString(payResponse["pnr"])
+		createOrderResponse.CouponCode = cast.ToString(payResponse["pnr"])
 
 		resourceResponse, errorNotification, err := GetResourceID(AAGenerateCouponRequest{
 			URL:    supplier.APIUrl,
@@ -309,7 +306,7 @@ func CreateOrder(
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 			errorResponse.TelegramErrorFile = errorNotification
-			errorMessage = errorResponse.ErrorMessage
+			createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 			return
 		}
 
@@ -323,7 +320,7 @@ func CreateOrder(
 			errorResponse.StatusCode = 422
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-			errorMessage = errorResponse.ErrorMessage
+			createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 			return
 		}
 		expireTime = expireTime.Add(-time.Hour * 1)
@@ -336,18 +333,18 @@ func CreateOrder(
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 				errorResponse.TelegramErrorFile = errorNotification
-				errorMessage = errorResponse.ErrorMessage
+				createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 				return
 			}
 
 			var updateSupplierRequest = sdk.Request{Data: map[string]interface{}{"guid": supplier.Guid, "token": login.Token, "token_expire_at": login.Expires}}
-			_, response, err = ettUcodeApi.UpdateObject(&sdk.Argument{Ctx: context.Background(), TableSlug: "suppliers", Request: updateSupplierRequest, BlockBuilder: true, DisableFaas: true})
+			_, response, err := ettUcodeApi.UpdateObject(&sdk.Argument{Ctx: context.Background(), TableSlug: "suppliers", Request: updateSupplierRequest, BlockBuilder: true, DisableFaas: true})
 			if err != nil {
 				errorResponse.StatusCode = 422
 				errorResponse.Description = response.Data["description"]
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-				errorMessage = errorResponse.ErrorMessage
+				createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 				return
 			}
 			supplier.Token = login.Token
@@ -368,7 +365,7 @@ func CreateOrder(
 				errorResponse.StatusCode = 422
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-				errorMessage = errorResponse.ErrorMessage
+				createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 				return
 			}
 		}
@@ -386,7 +383,7 @@ func CreateOrder(
 					errorResponse.StatusCode = 422
 					errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 					errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
-					errorMessage = errorResponse.ErrorMessage
+					createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 					return
 				}
 			}
@@ -459,12 +456,13 @@ func CreateOrder(
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
 			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
 			errorResponse.TelegramErrorFile = errorNotification
-			errorMessage = errorResponse.ErrorMessage
+			createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 			return
 		}
-		couponCode = createISGServiceResponse.Data.Code
+		createOrderResponse.CouponCode = createISGServiceResponse.Data.Code
 	}
-	return couponCode, errorMessage, errorResponse
+
+	return createOrderResponse, errorResponse
 }
 
 type (
@@ -563,6 +561,8 @@ type (
 			EcertURL          string `json:"ecert_url"`
 			RequestIdentifier string `json:"request_identifier"`
 			BillingPriceGroup string `json:"billing_price_group"`
+			LogoUrl           string `json:"logo_url"`
+			LogoUrl2          string `json:"logo_url_2"`
 		} `json:"data"`
 	}
 	// Every Lounge
@@ -871,7 +871,7 @@ func GenerateCouponPPG(couponData CouponInput) (string, string, error) {
 	return strings.ReplaceAll(coupon.Result.Coupon, "@ppg", ""), "", nil
 }
 
-func GenerateCouponDF(couponData GenerateCouponDFRequest) (int, string, error) {
+func GenerateCouponDF(couponData GenerateCouponDFRequest) (DFGeneratecouponResponse, string, error) {
 	var generalErrorMessage string
 	jsonData, err := json.Marshal(GenerateCouponDFAPIRequest{
 		ProgramId:          couponData.ProgramId,
@@ -886,7 +886,7 @@ func GenerateCouponDF(couponData GenerateCouponDFRequest) (int, string, error) {
 	})
 	if err != nil {
 		generalErrorMessage = "Internal Server Error, failed to marshal request: " + err.Error()
-		return 0, generalErrorMessage, errors.New(generalErrorMessage)
+		return DFGeneratecouponResponse{}, generalErrorMessage, errors.New(generalErrorMessage)
 	}
 
 	var vouherOutletUrl = couponData.URL + "/api/get-voucher-outlet"
@@ -897,7 +897,7 @@ func GenerateCouponDF(couponData GenerateCouponDFRequest) (int, string, error) {
 	req, err := http.NewRequest("POST", vouherOutletUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
 		generalErrorMessage = "Internal Server Error, failed to create request: " + err.Error()
-		return 0, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
+		return DFGeneratecouponResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
 	}
 
 	req.Header.Set("key", couponData.Username)
@@ -908,33 +908,33 @@ func GenerateCouponDF(couponData GenerateCouponDFRequest) (int, string, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		generalErrorMessage = "Supplier API request failed. Failed to send request:" + err.Error()
-		return 0, generalErrorMessage, errors.New(generalErrorMessage + " Request body: " + string(jsonData))
+		return DFGeneratecouponResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " Request body: " + string(jsonData))
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		generalErrorMessage = "Supplier API request failed. Failed to read response body:" + err.Error()
-		return 0, generalErrorMessage, errors.New(generalErrorMessage + " Request body: " + string(jsonData))
+		return DFGeneratecouponResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " Request body: " + string(jsonData))
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		generalErrorMessage = fmt.Sprintln("Supplier API request failed. Invalid status code:", resp.StatusCode) + " Response body: " + string(body)
-		return 0, generalErrorMessage, errors.New(generalErrorMessage + " Request body: " + string(jsonData))
+		return DFGeneratecouponResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " Request body: " + string(jsonData))
 	}
 
 	var coupon DFGeneratecouponResponse
 	if err := json.Unmarshal(body, &coupon); err != nil {
 		generalErrorMessage = "Supplier API request failed. Error decoding JSON response:" + err.Error() + " Response body:" + string(body)
-		return 0, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
+		return DFGeneratecouponResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
 	}
 
 	if !coupon.Status {
 		generalErrorMessage = "Supplier API request failed. Received false coupon status. Response body:" + string(body)
-		return 0, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
+		return DFGeneratecouponResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
 	}
 
-	return coupon.Data.VoucherCode, "", nil
+	return coupon, "", nil
 }
 
 func LoginEveryLounge(req LoginRequest) (LoginResponse, string, error) {
