@@ -34,6 +34,7 @@ type (
 		ContactPerson  string `json:"contact_person"`
 		Email          string `json:"email"`
 		Phone          string `json:"phone"`
+		ApiVersion     string `json:"api_version"`
 	}
 	OrderData struct {
 		FirstName          string
@@ -60,7 +61,8 @@ type (
 	}
 )
 
-func CreateOrder(supplier SupplierData,
+func CreateOrder(
+	supplier SupplierData,
 	order OrderData,
 	additionalData AdditionalData,
 	productData ProductData,
@@ -169,6 +171,7 @@ func CreateOrder(supplier SupplierData,
 
 		couponCodeInt, errorNotification, err := GenerateCouponDF(GenerateCouponDFRequest{
 			URL:                supplier.APIUrl,
+			ApiVersion:         supplier.ApiVersion,
 			Username:           supplier.Username,
 			Password:           supplier.Password,
 			ProgramId:          programmIdInt,
@@ -527,6 +530,7 @@ type (
 	// Dreamfolks
 	GenerateCouponDFRequest struct {
 		URL                string
+		ApiVersion         string
 		Username           string
 		Password           string
 		ProgramId          int
@@ -885,7 +889,12 @@ func GenerateCouponDF(couponData GenerateCouponDFRequest) (int, string, error) {
 		return 0, generalErrorMessage, errors.New(generalErrorMessage)
 	}
 
-	req, err := http.NewRequest("POST", couponData.URL+"/api/get-voucher-outlet", bytes.NewBuffer(jsonData))
+	var vouherOutletUrl = couponData.URL + "/api/get-voucher-outlet"
+	if couponData.ApiVersion != "" {
+		vouherOutletUrl = couponData.URL + "/api/" + couponData.ApiVersion + "/get-voucher-outlet"
+	}
+
+	req, err := http.NewRequest("POST", vouherOutletUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
 		generalErrorMessage = "Internal Server Error, failed to create request: " + err.Error()
 		return 0, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(jsonData))
