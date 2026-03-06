@@ -250,6 +250,10 @@ func Decrypt(secretKey, ciphertext string) (string, error) {
 		return "", err
 	}
 
+	if ciphertext == "" {
+		return "", errors.New("ciphertext is empty")
+	}
+
 	// Since we know the ciphertext is actually nonce+ciphertext
 	// And len(nonce) == NonceSize(). We can separate the two.
 	nonceSize := gcm.NonceSize()
