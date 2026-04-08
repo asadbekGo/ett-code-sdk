@@ -44,6 +44,9 @@ type (
 		ProductDate        string
 		AgentTransactionId string
 		AgentOrderItemId   string
+		Iccid              string
+		PhoneNumber        string
+		Topup              bool
 	}
 	ProductData struct {
 		ProductValue      float64
@@ -52,8 +55,10 @@ type (
 		AACode            string
 		HpCode            string
 		ISGCode           string
+		WorldMobile       string
 		TimezoneOffset    string
 		DestinationCity   string
+		CountryCode       string
 	}
 	AdditionalData struct {
 		EnvironmentId string
@@ -61,10 +66,12 @@ type (
 	}
 
 	CreateOrderResponse struct {
-		CouponCode   string
-		LogoUrl      string
-		LogoUrl2     string
-		ErrorMessage string
+		CouponCode       string
+		LogoUrl          string
+		LogoUrl2         string
+		ESIMQrCodeBase64 string
+		Iccid            string
+		ErrorMessage     string
 	}
 )
 
@@ -82,7 +89,6 @@ func CreateOrder(
 	highPassFastTrackOrders map[string]HighPassCrateOrderRequest,
 	index int,
 ) (createOrderResponse CreateOrderResponse, errorResponse sdk.ResponseError) {
-
 	switch supplier.Type {
 	case "ppg":
 		var errorNotification string
@@ -250,7 +256,7 @@ func CreateOrder(
 		if len(order.PaxType) <= 0 {
 			errorResponse.StatusCode = 500
 			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
-			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
+			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(sdk.ErrorCodeWithMessage[errorResponse.StatusCode])
 			createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 			if additionalData.EnvironmentId == additionalData.ProdEnvID {
 				SendtoETT("[Create Order - Every Lounge Pax Type] [🔴 Down] Request failed with status code 500")
@@ -435,7 +441,6 @@ func CreateOrder(
 		}
 		resourceMutex.Unlock()
 	case "isg":
-		var errorNotification string
 		var createISGServiceRequest = ISGServiceRequest{
 			URL:         supplier.APIUrl,
 			AuthKey:     supplier.Password,
@@ -450,6 +455,7 @@ func CreateOrder(
 			createISGServiceRequest.IsTest = false
 		}
 
+		var errorNotification string
 		createISGServiceResponse, errorNotification, err := CreateISGService(createISGServiceRequest)
 		if err != nil {
 			errorResponse.StatusCode = 422
@@ -460,6 +466,53 @@ func CreateOrder(
 			return
 		}
 		createOrderResponse.CouponCode = createISGServiceResponse.Data.Code
+	case "world_mobile":
+		var createWorldMobileRequest = WorldMobileRequest{
+			URL:           supplier.APIUrl,
+			AuthKey:       supplier.Password,
+			Sku:           productData.WorldMobile,
+			Iccid:         order.Iccid,
+			BookingNumber: order.AgentOrderItemId,
+			Quantity:      order.TotalPax,
+			Topup:         order.Topup,
+		}
+
+		var errorNotification string
+		createWorldMobileResponse, errorNotification, err := CreateWorldMobileOrder(createWorldMobileRequest)
+		if err != nil {
+			errorResponse.StatusCode = 422
+			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
+			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
+			errorResponse.TelegramErrorFile = errorNotification
+			createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
+			return
+		}
+		createOrderResponse.Iccid = createWorldMobileResponse.Data.SimCard.Iccid
+		createOrderResponse.ESIMQrCodeBase64 = createWorldMobileResponse.Data.SimCard.QrcodeBase64
+
+		if order.Topup {
+			createOrderResponse.CouponCode = createWorldMobileResponse.Data.SimCard.Token
+		} else {
+			createOrderResponse.CouponCode = createWorldMobileResponse.Data.SimCards[0].Token
+			activateWorldMobileResponse, errorNotification, err := ActivateWorldMobileOrder(ActivateWorldMobileRequest{
+				URL:       supplier.APIUrl,
+				AuthKey:   supplier.Password,
+				SimCardId: createOrderResponse.CouponCode,
+				Country:   productData.CountryCode,
+				Phone:     order.PhoneNumber,
+				Email:     supplier.Email,
+			})
+			if err != nil {
+				errorResponse.StatusCode = 422
+				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
+				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
+				errorResponse.TelegramErrorFile = errorNotification
+				createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
+				return
+			}
+			createOrderResponse.Iccid = activateWorldMobileResponse.SimCard.Iccid
+			createOrderResponse.ESIMQrCodeBase64 = activateWorldMobileResponse.SimCard.QrcodeBase64
+		}
 	}
 
 	return createOrderResponse, errorResponse
@@ -734,6 +787,50 @@ type (
 			Code    string `json:"Code"`
 			PassUrl string `json:"PassUrl"`
 		} `json:"Data"`
+	}
+	// world mobile
+	WorldMobileRequest struct {
+		URL           string
+		AuthKey       string
+		Sku           string
+		Quantity      int
+		BookingNumber string
+		Iccid         string
+		Topup         bool
+	}
+	WorldMobileResponse struct {
+		Error   string `json:"error"`
+		Message string `json:"message"`
+		Data    struct {
+			RefNumber string `json:"ref_number"`
+			SimCards  []struct {
+				Token string `json:"token"`
+			} `json:"sim_cards"`
+			SimCard struct {
+				Iccid        string `json:"iccid"`
+				Token        string `json:"token"`
+				QrcodeURL    string `json:"qrcode_url"`
+				QrcodeBase64 string `json:"qrcode_base64"`
+			} `json:"sim_card"`
+		} `json:"data"`
+	}
+	ActivateWorldMobileRequest struct {
+		URL       string
+		AuthKey   string
+		SimCardId string
+		Country   string
+		Phone     string
+		Email     string
+	}
+	ActivateWorldMobileResponse struct {
+		Error   string `json:"error"`
+		Message string `json:"message"`
+		SimCard struct {
+			Iccid        string `json:"iccid"`
+			Token        string `json:"token"`
+			QrcodeURL    string `json:"qrcode_url"`
+			QrcodeBase64 string `json:"qrcode_base64"`
+		} `json:"sim_card"`
 	}
 	// additional
 	FlightInfo struct {
@@ -1342,6 +1439,148 @@ func CreateISGService(reqData ISGServiceRequest) (ISGServiceResponse, string, er
 	if result.Error {
 		generalErrorMessage = "Supplier API request failed, ISG Service Error: " + result.ErrorMessage
 		return result, generalErrorMessage, errors.New(generalErrorMessage + " URL: " + fullURL + " body: " + string(body))
+	}
+
+	return result, "", nil
+}
+
+func CreateWorldMobileOrder(reqData WorldMobileRequest) (result WorldMobileResponse, generalErrorMessage string, err error) {
+
+	var (
+		path    = "/api/orders/esim"
+		payload = map[string]any{
+			"sku":            reqData.Sku,
+			"quantity":       reqData.Quantity,
+			"booking_number": reqData.BookingNumber,
+		}
+	)
+
+	if reqData.Topup {
+		path = "/api/orders/topup"
+		payload["iccid"] = reqData.Iccid
+		delete(payload, "quantity")
+	}
+
+	var fullURL = reqData.URL + path
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		generalErrorMessage = "Internal Server Error, failed to marshal world mobile request body: " + err.Error()
+		return WorldMobileResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, fullURL, strings.NewReader(string(payloadBytes)))
+	if err != nil {
+		generalErrorMessage = "Internal Server Error, failed to create world mobile request: " + err.Error()
+		return WorldMobileResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL)
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Authorization", "Bearer "+reqData.AuthKey)
+
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		generalErrorMessage = "Supplier API request failed, failed to do world mobile request: " + err.Error()
+		return WorldMobileResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		generalErrorMessage = "Supplier API request failed, failed to read world mobile response: " + err.Error()
+		return WorldMobileResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL)
+	}
+
+	if err := json.Unmarshal(body, &result); err != nil {
+		generalErrorMessage = "Supplier API request failed, failed to unmarshal world mobile response: " + err.Error()
+		return WorldMobileResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL + " body: " + string(body))
+	}
+
+	if result.Error != "" {
+		generalErrorMessage = "Supplier API request failed, world mobile Error: " + result.Error
+		if result.Message != "" {
+			generalErrorMessage += " Message: " + result.Message
+		}
+		return result, generalErrorMessage, errors.New(generalErrorMessage + " URL: " + fullURL + " body: " + string(body))
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		generalErrorMessage = "Supplier API request failed, unexpected status code: " + fmt.Sprint(resp.StatusCode)
+		return WorldMobileResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL + " body: " + string(body))
+	}
+
+	if !reqData.Topup && len(result.Data.SimCards) == 0 {
+		generalErrorMessage = "Supplier API request failed, no sim cards found in response body"
+		return WorldMobileResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL + " body: " + string(body))
+	}
+
+	return result, "", nil
+}
+
+func ActivateWorldMobileOrder(reqData ActivateWorldMobileRequest) (result ActivateWorldMobileResponse, generalErrorMessage string, err error) {
+
+	var (
+		path    = "/api/sim_cards/" + reqData.SimCardId
+		payload = map[string]any{
+			"country": reqData.Country,
+			"phone":   reqData.Phone,
+			"email":   reqData.Email,
+		}
+	)
+
+	var fullURL = reqData.URL + path
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		generalErrorMessage = "Internal Server Error, failed to marshal activate world mobile request body: " + err.Error()
+		return ActivateWorldMobileResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL)
+	}
+
+	req, err := http.NewRequest(http.MethodPatch, fullURL, strings.NewReader(string(payloadBytes)))
+	if err != nil {
+		generalErrorMessage = "Internal Server Error, failed to create activate world mobile request: " + err.Error()
+		return ActivateWorldMobileResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL)
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Authorization", "Bearer "+reqData.AuthKey)
+
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		generalErrorMessage = "Supplier API request failed, failed to do activate world mobile request: " + err.Error()
+		return ActivateWorldMobileResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		generalErrorMessage = "Supplier API request failed, failed to read activate world mobile response: " + err.Error()
+		return ActivateWorldMobileResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL)
+	}
+
+	if err := json.Unmarshal(body, &result); err != nil {
+		generalErrorMessage = "Supplier API request failed, failed to unmarshal activate world mobile response: " + err.Error()
+		return ActivateWorldMobileResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL + " body: " + string(body))
+	}
+
+	if result.Error != "" {
+		generalErrorMessage = "Supplier API request failed, activate world mobile Error: " + result.Error
+		if result.Message != "" {
+			generalErrorMessage += " Message: " + result.Message
+		}
+		return result, generalErrorMessage, errors.New(generalErrorMessage + " URL: " + fullURL + " body: " + string(body))
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		generalErrorMessage = "Supplier API request failed, unexpected status code: " + fmt.Sprint(resp.StatusCode)
+		return ActivateWorldMobileResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL + " body: " + string(body))
+	}
+
+	if len(result.SimCard.Iccid) == 0 {
+		generalErrorMessage = "Supplier API request failed, no iccid found in response body"
+		return ActivateWorldMobileResponse{}, generalErrorMessage, errors.New(generalErrorMessage + " URL:" + fullURL + " body: " + string(body))
 	}
 
 	return result, "", nil
