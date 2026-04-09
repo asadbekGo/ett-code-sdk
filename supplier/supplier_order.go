@@ -71,6 +71,7 @@ type (
 		LogoUrl2         string
 		ESIMQrCodeBase64 string
 		Iccid            string
+		Lpa              string
 		ErrorMessage     string
 	}
 )
@@ -488,6 +489,7 @@ func CreateOrder(
 			return
 		}
 		createOrderResponse.Iccid = createWorldMobileResponse.Data.SimCard.Iccid
+		createOrderResponse.Lpa = createWorldMobileResponse.Data.SimCard.Lpa
 		createOrderResponse.ESIMQrCodeBase64 = createWorldMobileResponse.Data.SimCard.QrcodeBase64
 
 		if order.Topup {
@@ -511,6 +513,7 @@ func CreateOrder(
 				return
 			}
 			createOrderResponse.Iccid = activateWorldMobileResponse.SimCard.Iccid
+			createOrderResponse.Lpa = activateWorldMobileResponse.SimCard.Lpa
 			createOrderResponse.ESIMQrCodeBase64 = activateWorldMobileResponse.SimCard.QrcodeBase64
 		}
 	}
@@ -809,6 +812,7 @@ type (
 			SimCard struct {
 				Iccid        string `json:"iccid"`
 				Token        string `json:"token"`
+				Lpa          string `json:"lpa"`
 				QrcodeURL    string `json:"qrcode_url"`
 				QrcodeBase64 string `json:"qrcode_base64"`
 			} `json:"sim_card"`
@@ -828,6 +832,7 @@ type (
 		SimCard struct {
 			Iccid        string `json:"iccid"`
 			Token        string `json:"token"`
+			Lpa          string `json:"lpa"`
 			QrcodeURL    string `json:"qrcode_url"`
 			QrcodeBase64 string `json:"qrcode_base64"`
 		} `json:"sim_card"`
