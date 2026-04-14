@@ -1527,12 +1527,20 @@ func ActivateWorldMobileOrder(reqData ActivateWorldMobileRequest) (result Activa
 
 	var (
 		path    = "/api/sim_cards/" + reqData.SimCardId
-		payload = map[string]any{
-			"country": reqData.Country,
-			"phone":   reqData.Phone,
-			"email":   reqData.Email,
-		}
+		payload = map[string]any{}
 	)
+
+	if reqData.Country != "" {
+		payload["country"] = reqData.Country
+	}
+
+	if reqData.Phone != "" {
+		payload["phone"] = reqData.Phone
+	}
+
+	if reqData.Email != "" {
+		payload["email"] = reqData.Email
+	}
 
 	var fullURL = reqData.URL + path
 	payloadBytes, err := json.Marshal(payload)
