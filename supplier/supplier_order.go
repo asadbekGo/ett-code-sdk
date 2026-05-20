@@ -1539,10 +1539,6 @@ func ActivateWorldMobileOrder(reqData ActivateWorldMobileRequest) (result Activa
 		payload["country"] = reqData.Country
 	}
 
-	if reqData.Phone != "" {
-		payload["phone"] = reqData.Phone
-	}
-
 	if reqData.Email != "" {
 		payload["email"] = reqData.Email
 	}
