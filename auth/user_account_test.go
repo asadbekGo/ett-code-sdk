@@ -178,6 +178,89 @@ var getUserByAccessTokenTestCases = []getUserByAccessTokenTestCase{
 		},
 		expectError: true,
 	},
+	{
+		name: "sabre success case",
+		args: args{
+			// {"pcc":"XYZ789","pnr":"ABC123","firstName":"James","lastName":"Bond"}
+			accessToken: "eyJwY2MiOiJYWVo3ODkiLCJwbnIiOiJBQkMxMjMiLCJmaXJzdE5hbWUiOiJKYW1lcyIsImxhc3ROYW1lIjoiQm9uZCJ9",
+			secretKey:   "",
+			ettUcodeApi: &sdk.ObjectFunction{},
+			widgetObject: map[string]interface{}{
+				"authorization_services": []AuthorizationService{{Provider: []string{"sabre"}}},
+			},
+		},
+		expectedResponse: UserAccount{
+			ExternalAgencyId:      "XYZ789",
+			ExternalUserId:        "ABC123",
+			FirstName:             "James",
+			LastName:              "Bond",
+			AuthorizationProvider: "sabre",
+		},
+		expectedErrorResponse: nil,
+		expectError:           false,
+	},
+	{
+		name: "sabre error case - missing firstName and lastName",
+		args: args{
+			// {"pcc":"XYZ789","pnr":"ABC123","agent_login":"AgentLogin"}
+			accessToken: "eyJwY2MiOiJYWVo3ODkiLCJwbnIiOiJBQkMxMjMiLCJhZ2VudF9sb2dpbiI6IkFnZW50TG9naW4ifQ==",
+			secretKey:   "",
+			ettUcodeApi: &sdk.ObjectFunction{},
+			widgetObject: map[string]interface{}{
+				"authorization_services": []AuthorizationService{{Provider: []string{"sabre"}}},
+			},
+		},
+		expectedResponse: UserAccount{},
+		expectedErrorResponse: &sdk.ResponseError{
+			StatusCode:         401,
+			ClientErrorMessage: sdk.ErrorCodeWithMessage[401],
+			ResponseHeader: map[string]interface{}{
+				"WWW-Authenticate": noAvailableAuthRedirectUrlHeaderValue,
+			},
+		},
+		expectError: true,
+	},
+	{
+		name: "sabre error case - missing lastName",
+		args: args{
+			// {"pcc":"XYZ789","pnr":"ABC123","firstName":"James"}
+			accessToken: "eyJwY2MiOiJYWVo3ODkiLCJwbnIiOiJBQkMxMjMiLCJmaXJzdE5hbWUiOiJKYW1lcyJ9",
+			secretKey:   "",
+			ettUcodeApi: &sdk.ObjectFunction{},
+			widgetObject: map[string]interface{}{
+				"authorization_services": []AuthorizationService{{Provider: []string{"sabre"}}},
+			},
+		},
+		expectedResponse: UserAccount{},
+		expectedErrorResponse: &sdk.ResponseError{
+			StatusCode:         401,
+			ClientErrorMessage: sdk.ErrorCodeWithMessage[401],
+			ResponseHeader: map[string]interface{}{
+				"WWW-Authenticate": noAvailableAuthRedirectUrlHeaderValue,
+			},
+		},
+		expectError: true,
+	},
+	{
+		name: "sabre error case - invalid base64",
+		args: args{
+			accessToken: "!!!not-valid-base64!!!",
+			secretKey:   "",
+			ettUcodeApi: &sdk.ObjectFunction{},
+			widgetObject: map[string]interface{}{
+				"authorization_services": []AuthorizationService{{Provider: []string{"sabre"}}},
+			},
+		},
+		expectedResponse: UserAccount{},
+		expectedErrorResponse: &sdk.ResponseError{
+			StatusCode:         401,
+			ClientErrorMessage: sdk.ErrorCodeWithMessage[401],
+			ResponseHeader: map[string]interface{}{
+				"WWW-Authenticate": noAvailableAuthRedirectUrlHeaderValue,
+			},
+		},
+		expectError: true,
+	},
 	// {
 	// 	name: "case 1",
 	// 	args: args{

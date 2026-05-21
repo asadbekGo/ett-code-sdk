@@ -13,6 +13,7 @@ import (
 	"github.com/asadbekGo/ett-code-sdk/tools/auth0"
 	"github.com/asadbekGo/ett-code-sdk/tools/beeline"
 	"github.com/asadbekGo/ett-code-sdk/tools/click"
+	"github.com/asadbekGo/ett-code-sdk/tools/sabre"
 )
 
 type UserAccount struct {
@@ -410,6 +411,26 @@ func GetUserByAccessToken(widgetObject map[string]interface{}, accessToken, secr
 			ExternalAgencyId: tokenArr[0],
 			ExternalUserId:   tokenArr[1],
 			Email:            tokenArr[1],
+		}
+
+	case "sabre":
+		sabreUser, err := sabre.ParseToken(accessToken)
+		if err != nil {
+			errorResponse.StatusCode = 401
+			errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
+			errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
+			errorResponse.ResponseHeader["WWW-Authenticate"] = noAvailableAuthRedirectUrlHeaderValue
+			if authorizationService.AuthRedirectUrl != "" {
+				errorResponse.ResponseHeader["WWW-Authenticate"] = fmt.Sprintf(authRedirectUrlHeaderValue, authorizationService.AuthRedirectUrl)
+			}
+			return userAccount, errorResponse
+		}
+
+		userAccount = UserAccount{
+			ExternalAgencyId: sabreUser.PCC,
+			ExternalUserId:   sabreUser.PNR,
+			FirstName:        sabreUser.FirstName,
+			LastName:         sabreUser.LastName,
 		}
 
 	default:
