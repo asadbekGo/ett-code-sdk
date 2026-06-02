@@ -476,7 +476,7 @@ func (o *ObjectFunction) SendTelegram(text string) error {
 	}
 
 	for _, e := range o.Cfg.AccountIds {
-		botUrl := fmt.Sprintf("https://api.telegram.org/bot"+o.Cfg.BotToken+"/sendMessage?chat_id="+e+"&text=%s", text)
+		botUrl := fmt.Sprintf("https://api.telegram.org/bot"+o.Cfg.BotToken+"/sendMessage?chat_id="+e+"&text=%s", httpUrl.QueryEscape(text))
 		request, err := http.NewRequest(http.MethodGet, botUrl, nil)
 		if err != nil {
 			return err
