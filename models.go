@@ -55,6 +55,7 @@ type (
 		IsFieldCacheService bool            `json:"is_field_cache_service"`
 		IgnoreDuplicateGuid bool            `json:"ignore_duplicate_guid"`
 		IgnoreDuplicateKey  string          `json:"ignore_duplicate_key"`
+		DisableCount        bool            `json:"disable_count"`
 	}
 
 	Data struct {
