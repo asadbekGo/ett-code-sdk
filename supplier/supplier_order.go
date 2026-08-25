@@ -1632,7 +1632,8 @@ func parseTimezoneOffset(timezoneOffset string) (time.Duration, error) {
 // and a bare date is read as 00:00, so anything ordered for a product opening at 04:00 comes
 // back as "service is not available in selected period". The service date is therefore the
 // opening time plus a buffer — but never in the past, so for same-day orders the current
-// local time plus the same buffer wins instead.
+// local time plus the same buffer wins instead. The result matches the shape Add10Minutes
+// already sends ("2006-01-02 15:04:05").
 func HighPassServiceDate(productDate, openingHour, timezoneOffset string) (string, error) {
 	date, err := time.Parse(time.DateOnly, productDate)
 	if err != nil {
@@ -1660,7 +1661,7 @@ func HighPassServiceDate(productDate, openingHour, timezoneOffset string) (strin
 		serviceDate = earliest
 	}
 
-	return serviceDate.Format("2006-01-02T15:04:05"), nil
+	return serviceDate.Format(time.DateTime), nil
 }
 
 func IsCurrentDate(serviceDate, timezoneOffset string) bool {
