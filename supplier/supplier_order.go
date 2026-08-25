@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -59,10 +60,14 @@ type (
 		TimezoneOffset    string
 		DestinationCity   string
 		CountryCode       string
-		// ServiceOpeningHour is the product's local opening time ("15:04") on the ordered
-		// date. Empty means the caller could not resolve one, or the product already opens
-		// at midnight, in which case a bare date is a valid service date on its own.
-		ServiceOpeningHour string
+		// ServiceHours are the product's local working windows on the ordered date, in any
+		// order. Empty means the caller could not resolve them, and the service date is then
+		// left to the legacy same-day handling.
+		ServiceHours []ServiceHour
+	}
+	ServiceHour struct {
+		Open  string
+		Close string
 	}
 	AdditionalData struct {
 		EnvironmentId string
@@ -388,14 +393,18 @@ func CreateOrder(
 			} else {
 				order.ProductDate = flightInfo.DepartureTime
 			}
-		} else if productData.ServiceOpeningHour != "" {
-			order.ProductDate, err = HighPassServiceDate(order.ProductDate, productData.ServiceOpeningHour, counts.Offset)
-			if err != nil {
+		} else if len(productData.ServiceHours) > 0 {
+			serviceDate, serviceDateErr := HighPassServiceDate(order.ProductDate, productData.ServiceHours, counts.Offset)
+			if serviceDateErr != nil {
 				errorResponse.StatusCode = 422
 				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
-				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
+				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(serviceDateErr.Error())
 				createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
 				return
+			}
+
+			if serviceDate != "" {
+				order.ProductDate = serviceDate
 			}
 		} else {
 			if IsCurrentDate(order.ProductDate, counts.Offset) {
@@ -1379,23 +1388,23 @@ func CreateHighPass(request HighPassCrateOrderRequest) (HighPassCouponData, stri
 
 	if resp.StatusCode != http.StatusOK {
 		generalErrorMessage = "Supplier API request failed, HighPass Create Order request failed with status code: " + fmt.Sprint(resp.StatusCode)
-		return HighPassCouponData{}, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(body))
+		return HighPassCouponData{}, generalErrorMessage, errors.New(generalErrorMessage + " Response body:" + string(body))
 	}
 
 	var order OrderResponse
 	if err := json.Unmarshal(body, &order); err != nil {
 		generalErrorMessage = "Supplier API request failed, failed to unmarshal HighPass Create Order response: " + err.Error()
-		return HighPassCouponData{}, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(body))
+		return HighPassCouponData{}, generalErrorMessage, errors.New(generalErrorMessage + " Response body:" + string(body))
 	}
 
 	if len(order.Orders) <= 0 {
 		generalErrorMessage = "Supplier API request failed, no orders found in response body"
-		return HighPassCouponData{}, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(body))
+		return HighPassCouponData{}, generalErrorMessage, errors.New(generalErrorMessage + " Response body:" + string(body))
 	}
 
 	if order.Orders[0].ErrorMessage != "" {
 		generalErrorMessage = "Supplier API request failed, HighPass Create Order request failed with error message: " + order.Orders[0].ErrorMessage
-		return HighPassCouponData{}, generalErrorMessage, errors.New(generalErrorMessage + " Request body:" + string(body))
+		return HighPassCouponData{}, generalErrorMessage, errors.New(generalErrorMessage + " Response body:" + string(body))
 	}
 
 	response := HighPassCouponData{
@@ -1627,41 +1636,92 @@ func parseTimezoneOffset(timezoneOffset string) (time.Duration, error) {
 	return time.ParseDuration(parts[0] + "h" + parts[1] + "m")
 }
 
-// HighPassServiceDate builds the serviceDateLocal HighPass expects for a product that does
-// not open at midnight. HighPass validates that value against the product's working hours,
-// and a bare date is read as 00:00, so anything ordered for a product opening at 04:00 comes
-// back as "service is not available in selected period". The service date is therefore the
-// opening time plus a buffer — but never in the past, so for same-day orders the current
-// local time plus the same buffer wins instead. The result matches the shape Add10Minutes
-// already sends ("2006-01-02 15:04:05").
-func HighPassServiceDate(productDate, openingHour, timezoneOffset string) (string, error) {
-	date, err := time.Parse(time.DateOnly, productDate)
-	if err != nil {
-		return "", err
-	}
-
-	opening, err := time.Parse("15:04", openingHour)
-	if err != nil {
-		return "", err
-	}
-
+// HighPassServiceDate builds the serviceDateLocal HighPass expects, given the product's
+// working windows on the ordered date. HighPass validates that value against those windows
+// and reads a bare date as 00:00, so a product opening at 04:00 rejects the order outright
+// with "service is not available in selected period".
+//
+// A day can hold several windows (00:00-01:00 and 04:00-23:59, say), so the earliest window
+// that can still be served wins: the opening time plus a buffer, pushed to the current local
+// time plus the same buffer when the order is for today. Windows that have already closed are
+// skipped, which keeps the service date out of the gap between them.
+//
+// An empty result means the bare date is already a valid service date and must be kept as is.
+// That is the case for a future date on a product that opens at midnight — exactly what has
+// always been sent for such products.
+func HighPassServiceDate(productDate string, serviceHours []ServiceHour, timezoneOffset string) (string, error) {
 	timeZoneOffset, err := parseTimezoneOffset(timezoneOffset)
 	if err != nil {
 		return "", err
 	}
 
-	var (
-		serviceDate = date.
-				Add(time.Duration(opening.Hour())*time.Hour + time.Duration(opening.Minute())*time.Minute).
-				Add(serviceDateBuffer)
-		earliest = time.Now().UTC().Add(timeZoneOffset).Add(serviceDateBuffer)
-	)
+	return highPassServiceDate(productDate, serviceHours, time.Now().UTC().Add(timeZoneOffset))
+}
 
-	if earliest.After(serviceDate) {
-		serviceDate = earliest
+// highPassServiceDate carries the logic with the local "now" handed in, so the windows,
+// the gaps between them and the same-day clamping can be exercised at any hour of the day.
+func highPassServiceDate(productDate string, serviceHours []ServiceHour, nowLocal time.Time) (string, error) {
+	date, err := time.Parse(time.DateOnly, productDate)
+	if err != nil {
+		return "", err
 	}
 
-	return serviceDate.Format(time.DateTime), nil
+	var (
+		earliest = nowLocal.Add(serviceDateBuffer)
+		isToday  = nowLocal.Format(time.DateOnly) == date.Format(time.DateOnly)
+		windows  = append([]ServiceHour(nil), serviceHours...)
+	)
+
+	sort.Slice(windows, func(x, y int) bool { return windows[x].Open < windows[y].Open })
+
+	for _, window := range windows {
+		opensAt, err := dayTime(date, window.Open)
+		if err != nil {
+			return "", err
+		}
+
+		// A window without an explicit closing hour is treated as running to end of day.
+		closesAt := date.Add(24*time.Hour - time.Minute)
+		if window.Close != "" {
+			if closesAt, err = dayTime(date, window.Close); err != nil {
+				return "", err
+			}
+		}
+
+		serviceDate := opensAt.Add(serviceDateBuffer)
+		if isToday && earliest.After(serviceDate) {
+			serviceDate = earliest
+		}
+
+		if serviceDate.After(closesAt) {
+			continue
+		}
+
+		// Midnight opening on a later date: the bare date already lands inside this window.
+		if !isToday && window.Open == "00:00" {
+			return "", nil
+		}
+
+		return serviceDate.Format(time.DateTime), nil
+	}
+
+	// Every window for the day has already closed. Same-day orders keep the long-standing
+	// "current time plus a buffer" so HighPass, not this code, decides the outcome.
+	if isToday {
+		return earliest.Format(time.DateTime), nil
+	}
+
+	return "", nil
+}
+
+// dayTime places a "15:04" clock time on the given date.
+func dayTime(date time.Time, clock string) (time.Time, error) {
+	parsed, err := time.Parse("15:04", clock)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return date.Add(time.Duration(parsed.Hour())*time.Hour + time.Duration(parsed.Minute())*time.Minute), nil
 }
 
 func IsCurrentDate(serviceDate, timezoneOffset string) bool {
