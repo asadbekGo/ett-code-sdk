@@ -59,6 +59,10 @@ type (
 		TimezoneOffset    string
 		DestinationCity   string
 		CountryCode       string
+		// ServiceOpeningHour is the product's local opening time ("15:04") on the ordered
+		// date. Empty means the caller could not resolve one, or the product already opens
+		// at midnight, in which case a bare date is a valid service date on its own.
+		ServiceOpeningHour string
 	}
 	AdditionalData struct {
 		EnvironmentId string
@@ -383,6 +387,15 @@ func CreateOrder(
 				order.ProductDate = flightInfo.ArrivalTime
 			} else {
 				order.ProductDate = flightInfo.DepartureTime
+			}
+		} else if productData.ServiceOpeningHour != "" {
+			order.ProductDate, err = HighPassServiceDate(order.ProductDate, productData.ServiceOpeningHour, counts.Offset)
+			if err != nil {
+				errorResponse.StatusCode = 422
+				errorResponse.ClientErrorMessage = sdk.ErrorCodeWithMessage[errorResponse.StatusCode]
+				errorResponse.ErrorMessage = ettUcodeApi.Logger.ErrorLog.Sprint(err.Error())
+				createOrderResponse.ErrorMessage = errorResponse.ErrorMessage
+				return
 			}
 		} else {
 			if IsCurrentDate(order.ProductDate, counts.Offset) {
@@ -1598,6 +1611,56 @@ func ActivateWorldMobileOrder(reqData ActivateWorldMobileRequest) (result Activa
 	}
 
 	return result, "", nil
+}
+
+// serviceDateBuffer keeps the service date a little ahead of the moment the product opens,
+// so a request that reaches HighPass right on the boundary is not rejected as being in the past.
+const serviceDateBuffer = 10 * time.Minute
+
+// parseTimezoneOffset turns a "5:00" / "-3:30" offset into a duration.
+func parseTimezoneOffset(timezoneOffset string) (time.Duration, error) {
+	parts := strings.Split(timezoneOffset, ":")
+	if len(parts) < 2 {
+		return 0, fmt.Errorf("invalid timezone offset: %s", timezoneOffset)
+	}
+
+	return time.ParseDuration(parts[0] + "h" + parts[1] + "m")
+}
+
+// HighPassServiceDate builds the serviceDateLocal HighPass expects for a product that does
+// not open at midnight. HighPass validates that value against the product's working hours,
+// and a bare date is read as 00:00, so anything ordered for a product opening at 04:00 comes
+// back as "service is not available in selected period". The service date is therefore the
+// opening time plus a buffer — but never in the past, so for same-day orders the current
+// local time plus the same buffer wins instead.
+func HighPassServiceDate(productDate, openingHour, timezoneOffset string) (string, error) {
+	date, err := time.Parse(time.DateOnly, productDate)
+	if err != nil {
+		return "", err
+	}
+
+	opening, err := time.Parse("15:04", openingHour)
+	if err != nil {
+		return "", err
+	}
+
+	timeZoneOffset, err := parseTimezoneOffset(timezoneOffset)
+	if err != nil {
+		return "", err
+	}
+
+	var (
+		serviceDate = date.
+				Add(time.Duration(opening.Hour())*time.Hour + time.Duration(opening.Minute())*time.Minute).
+				Add(serviceDateBuffer)
+		earliest = time.Now().UTC().Add(timeZoneOffset).Add(serviceDateBuffer)
+	)
+
+	if earliest.After(serviceDate) {
+		serviceDate = earliest
+	}
+
+	return serviceDate.Format("2006-01-02T15:04:05"), nil
 }
 
 func IsCurrentDate(serviceDate, timezoneOffset string) bool {
