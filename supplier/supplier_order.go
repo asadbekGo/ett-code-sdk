@@ -772,6 +772,7 @@ type (
 	HighPassCouponData struct {
 		CouponCode string `json:"coupon_code"`
 		QrData     string `json:"qr_data"`
+		IsBarcode  bool   `json:"is_barcode"`
 		OrderId    string `json:"order_id"`
 	}
 
@@ -794,6 +795,7 @@ type (
 		ServiceDateLocal string   `json:"serviceDateLocal"`
 		Price            float64  `json:"price"`
 		QRData           []string `json:"qrData"`
+		IsBarcode        bool     `json:"isBarcode"`
 		ErrorMessage     string   `json:"errorMessage"`
 	}
 	// isg
@@ -1409,6 +1411,7 @@ func CreateHighPass(request HighPassCrateOrderRequest) (HighPassCouponData, stri
 
 	response := HighPassCouponData{
 		CouponCode: order.Orders[0].BookingCode,
+		IsBarcode:  order.Orders[0].IsBarcode,
 		OrderId:    order.Orders[0].HighPassOrderID,
 	}
 
