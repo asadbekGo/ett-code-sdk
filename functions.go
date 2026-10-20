@@ -181,7 +181,7 @@ func (o *ObjectFunction) GetList(arg *Argument) (GetListClientApiResponse, Respo
 		appId = arg.AppId
 	}
 
-	getListResponseInByte, err := DoRequest(arg.Ctx, url, http.MethodPost, arg.Request, appId, nil)
+	getListResponseInByte, err := doReadRequest(arg.Ctx, url, http.MethodPost, arg.Request, appId, nil)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(getListResponseInByte), "message": "Can't sent request", "error": err.Error()}
 		response.Status = "error"
@@ -231,7 +231,7 @@ func (o *ObjectFunction) GetListSlim(arg *Argument) (GetListClientApiResponse, R
 		appId = arg.AppId
 	}
 
-	getListResponseInByte, err := DoRequest(arg.Ctx, url, http.MethodGet, nil, appId, nil)
+	getListResponseInByte, err := doReadRequest(arg.Ctx, url, http.MethodGet, nil, appId, nil)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(getListResponseInByte), "message": "Can't sent request", "error": err.Error()}
 		response.Status = "error"
@@ -273,7 +273,7 @@ func (o *ObjectFunction) GetListAggregate(arg *Argument) (GetListClientApiRespon
 		appId = arg.AppId
 	}
 
-	getListAggregateResponseInByte, err := DoRequest(arg.Ctx, url, http.MethodPost, arg.Request, appId, nil)
+	getListAggregateResponseInByte, err := doReadRequest(arg.Ctx, url, http.MethodPost, arg.Request, appId, nil)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(getListAggregateResponseInByte), "message": "Can't sent request", "error": err.Error()}
 		response.Status = "error"
@@ -314,7 +314,7 @@ func (o *ObjectFunction) GetQueryAggregation(arg *Argument) (ClientApiAggregatio
 		appId = arg.AppId
 	}
 
-	getListAggregateResponseInByte, err := DoRequest(arg.Ctx, url, http.MethodPost, arg.Request, appId, nil)
+	getListAggregateResponseInByte, err := doReadRequest(arg.Ctx, url, http.MethodPost, arg.Request, appId, nil)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(getListAggregateResponseInByte), "message": "Can't sent request", "error": err.Error()}
 		response.Status = "error"
@@ -343,7 +343,7 @@ func (o *ObjectFunction) GetSingle(arg *Argument) (ClientApiResponse, Response, 
 		appId = arg.AppId
 	}
 
-	resByte, err := DoRequest(arg.Ctx, url, http.MethodGet, nil, appId, nil)
+	resByte, err := doReadRequest(arg.Ctx, url, http.MethodGet, nil, appId, nil)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(resByte), "message": "Can't sent request", "error": err.Error()}
 		response.Status = "error"
@@ -372,7 +372,7 @@ func (o *ObjectFunction) GetSingleSlim(arg *Argument) (ClientApiResponse, Respon
 		appId = arg.AppId
 	}
 
-	resByte, err := DoRequest(arg.Ctx, url, http.MethodGet, nil, appId, nil)
+	resByte, err := doReadRequest(arg.Ctx, url, http.MethodGet, nil, appId, nil)
 	if err != nil {
 		response.Data = map[string]interface{}{"description": string(resByte), "message": "Can't sent request", "error": err.Error()}
 		response.Status = "error"

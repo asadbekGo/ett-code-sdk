@@ -14,6 +14,7 @@ import (
 	mathrand "math/rand"
 	"net/http"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/spf13/cast"
@@ -60,6 +61,39 @@ func DoRequest(ctx context.Context, url string, method string, body interface{},
 	}
 
 	return respByte, err
+}
+
+// readRequestAttempts and readRetryDelay bound how a read is sent again: three
+// attempts in all, 300 ms apart.
+const (
+	readRequestAttempts = 3
+	readRetryDelay      = 300 * time.Millisecond
+)
+
+// doReadRequest is DoRequest for a request that only reads, sent again when
+// its connection is reset. The admin API is reached over the public internet,
+// through Cloudflare, and a reset there — no answer at all — failed whole
+// orders with 500 in the agent gateway for a read that is safe to repeat. Any
+// other failure, an error answer included, is returned at once: it came back
+// over a working connection. A write never comes here, since sending it twice
+// could create a second record.
+func doReadRequest(ctx context.Context, url string, method string, body interface{}, appId string, headers map[string]interface{}) ([]byte, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	for attempt := 1; ; attempt++ {
+		respByte, err := DoRequest(ctx, url, method, body, appId, headers)
+		if err == nil || !errors.Is(err, syscall.ECONNRESET) || attempt == readRequestAttempts {
+			return respByte, err
+		}
+
+		select {
+		case <-ctx.Done():
+			return respByte, err
+		case <-time.After(readRetryDelay):
+		}
+	}
 }
 
 func RemoveDuplicateStrings(arr []string, isLower bool) []string {
