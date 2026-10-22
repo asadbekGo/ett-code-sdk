@@ -423,6 +423,13 @@ func CreateOrder(
 			counts.FlightNumber = "BA396"
 		}
 
+		// HighPass calls this number about the service. A Meet & Assist order always
+		// carries the traveler's (createOrder requires it); a Fast Track order carries
+		// none and keeps the number HighPass was given before.
+		if counts.Phone == "" {
+			counts.Phone = "+998945553322"
+		}
+
 		if counts.BaggageCount > 0 {
 			counts.Comment += "Passenger has " + cast.ToString(counts.BaggageCount) + " baggage(s); "
 		}
@@ -449,7 +456,7 @@ func CreateOrder(
 							ChildCount:                             counts.Children,
 							FlightNumber:                           counts.FlightNumber,
 							Email:                                  supplier.Email,
-							Phone:                                  "+998945553322",
+							Phone:                                  counts.Phone,
 							Culture:                                "en-US",
 							IsDateTimeOfPassengersArrivalToAirport: true,
 							OtherPassengersContactDetails:          otherPassengers,

@@ -618,6 +618,24 @@ func TestCreateOrderHighPass(t *testing.T) {
 		}
 	})
 
+	t.Run("sends the traveler's phone, or the previous number when the order has none", func(t *testing.T) {
+		withPhone := newCall(PaxInfo{Adults: 1, Offset: "5:00", Phone: "+447700900123"})
+		if _, errResponse := withPhone.run(t); errResponse.StatusCode != 0 {
+			t.Fatalf("unexpected error response: %+v", errResponse)
+		}
+		if item := queued(t, withPhone); item.Phone != "+447700900123" {
+			t.Errorf("got phone %q, want the traveler's", item.Phone)
+		}
+
+		withoutPhone := newCall(PaxInfo{Adults: 1, Offset: "5:00"})
+		if _, errResponse := withoutPhone.run(t); errResponse.StatusCode != 0 {
+			t.Fatalf("unexpected error response: %+v", errResponse)
+		}
+		if item := queued(t, withoutPhone); item.Phone != "+998945553322" {
+			t.Errorf("got phone %q, want the previous number", item.Phone)
+		}
+	})
+
 	t.Run("spells out the baggage and companion counts in the comment", func(t *testing.T) {
 		call := newCall(PaxInfo{Adults: 1, Offset: "5:00", BaggageCount: 2, CompanionsCount: 3, Comment: "VIP; "})
 
