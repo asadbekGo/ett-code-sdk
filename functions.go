@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	httpUrl "net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -492,12 +491,13 @@ func (o *ObjectFunction) SendTelegram(text string) error {
 	return nil
 }
 
+// SendTelegramFile sends a function's request to the log group as a file. The request carries the
+// AES key in env.secret_key and, for some functions, passwords in data; both are masked first,
+// since with the key the group could open every stored password_copy.
 func (o *ObjectFunction) SendTelegramFile(req []byte, filename string) error {
-	err := os.WriteFile(filename, req, 0644)
-	if err != nil {
-		return err
-	}
-	defer os.Remove(filename)
+	// Sent from memory: a file on disk under the shared name was overwritten and removed by a
+	// concurrent call of the same function.
+	var file = tgbotapiK.FileBytes{Name: filename, Bytes: RedactSecrets(req)}
 
 	for _, e := range o.Cfg.AccountIds {
 		bot, err := tgbotapiK.NewBotAPI(o.Cfg.BotToken)
@@ -505,7 +505,7 @@ func (o *ObjectFunction) SendTelegramFile(req []byte, filename string) error {
 			return err
 		}
 
-		message := tgbotapiK.NewDocumentUpload(cast.ToInt64(e), filename)
+		message := tgbotapiK.NewDocumentUpload(cast.ToInt64(e), file)
 		_, err = bot.Send(message)
 		if err != nil {
 			return err
